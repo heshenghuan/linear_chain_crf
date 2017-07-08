@@ -76,13 +76,13 @@ class linear_chain_CRF():
         return
 
     def inference(self, X, X_len, reuse=None):
-        features = tf.one_hot(X, self.feat_size)
-        features = tf.reshape(features, [-1, self.time_steps, self.feat_size])
-        feat_vec = tf.reduce_sum(features, axis=2)
-        feat_vec = tf.reshape(feat_vec, [-1, self.feat_size])
-
         with tf.name_scope('score'):
-            scores = tf.matmul(feat_vec, self.W) + self.b
+            # The weight matrix is treated as an embedding matrix
+            # Using lookup & reduce_sum to complete calculation of unary score
+            features = tf.nn.embedding_lookup(self.W, X)
+            feat_vec = tf.reduce_sum(features, axis=2)
+            feat_vec = tf.reshape(feat_vec, [-1, self.nb_classes])
+            scores = feat_vec + self.b
             # scores = tf.nn.softmax(scores)
             scores = tf.reshape(scores, [-1, self.time_steps, self.nb_classes])
         return scores
