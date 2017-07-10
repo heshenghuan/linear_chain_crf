@@ -231,7 +231,7 @@ def main(_):
     if FLAGS.eval_test:
         res_test, pred_test_label = evaluate(pred_test_label, test_labels)
         print "Test F1: %f, P: %f, R: %f" % (res_test['f1'], res_test['p'], res_test['r'])
-    original_text = [[item[0] for item in sent] for sent in test_corpus]
+    original_text = [[item['w'] for item in sent] for sent in test_corpus]
     write_prediction(FLAGS.output_dir + 'prediction.utf8',
                      original_text, pred_test_label)
 
