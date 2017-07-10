@@ -74,11 +74,11 @@ def create_dicts(train_fn, valid_fn, test_fn, threshold, mode, anno=None):
         for ftv in feats:  # ftv一句中某个字的特征集合
             for ft in ftv:  # ft这句话中某个字的按模板生成的某个特征
                 feature_to_freq[ft] += 1
-    features_to_id = {OOV: 0}
-    cur_idx = 1
-    for feats in corpus_feats:
-        for ftv in feats:
-            for ft in ftv:
+    features_to_id = {OOV: 1}
+    cur_idx = 2
+    for sentc_feats in corpus_feats:
+        for feats in sentc_feats:
+            for ft in feats:
                 if (ft not in features_to_id):
                     if feature_to_freq[ft] > threshold:
                         # 只保留出现次数大于一定频次的特征
@@ -162,12 +162,23 @@ def apply_feature_templates(sntc):
 
 
 def conv_sentc(X, Y, word2idx, label2idx):
-    sntc = [word2idx.get(w) for w in X]
+    sentc = [word2idx.get(w) for w in X]
     label = [label2idx.get(l) for l in Y]
-    return sntc, label
+    return sentc, label
 
 
-def conv_corpus(sentcs, labels, word2idx, label2idx, max_len=MAX_LEN):
+def conv_feats(F, feat2idx, max_len=MAX_LEN):
+    feat_num = len(F[0])
+    sent_len = len(F)
+    feats = []
+    for feat in F:
+        feats.append([feat2idx.get(f, 1) for f in feat])
+    for i in xrange(max_len-sent_len):
+        feats.append([0] * feat_num)
+    return feats
+
+
+def conv_corpus(sentcs, featvs, labels, word2idx, feat2idx, label2idx, max_len=MAX_LEN):
     """
     Converts the list of sentences and labelSeq. After conversion, it will
     returns a 2D tensor which contains word's numeric id sequences, and a 3D
@@ -190,24 +201,20 @@ def conv_corpus(sentcs, labels, word2idx, label2idx, max_len=MAX_LEN):
     """
     assert len(sentcs) == len(
         labels), "The length of input sentences and labels not equal."
+    assert len(sentcs) == len(
+        featvs), "The length of input sentences and labels not equal."
     new_sentcs = []
     new_labels = []
-    for sentc, label in zip(sentcs, labels):
+    new_featvs = []
+    for sentc, feats, label in zip(sentcs, featvs, labels):
         sentc, label = conv_sentc(sentc, label, word2idx, label2idx)
         new_sentcs.append(sentc)
         new_labels.append(label)
+        new_featvs.append(conv_feats(feats, feat2idx, max_len))
     new_sentcs = pad_sequences(new_sentcs, maxlen=max_len, padding='post')
     new_labels = pad_sequences(new_labels, maxlen=max_len, padding='post')
-    # (row, col) = new_sentcs.shape
-    # label_size = len(label2idx) + 1
-    # new_labels = to_categorical(np.asarray(
-    #     new_labels), nb_classes=label_size).reshape((row, col, label_size))
-    # conv_labels = np.zeros((row, col, label_size))
-    # for i in range(row):
-    #     conv_labels[i] = to_categorical(np.asarray(new_labels[i]), nb_classes=label_size)
-    # new_labels = conv_labels
-    # new_labels = pad_sequences(new_labels, maxlen=MAX_LEN, padding='post')
-    return new_sentcs, new_labels
+    new_featvs = np.array(new_featvs)
+    return new_sentcs, new_featvs, new_labels
 
 
 def read_corpus(fn, mode, anno=None, has_label=True):
@@ -238,12 +245,10 @@ def read_corpus(fn, mode, anno=None, has_label=True):
                     label.append(token[-1])
                 else:
                     label.append(None)
-            # corpus.append(sntc)
-            # labels.append(label)
             X = convdata_helper(sentc, label, mode, anno)
-            # corpus.append([item[1] for item in X])
-            # labels.append([item[2] for item in X])
-            corpus.append(X)
+            features = apply_feature_templates(X)
+            # corpus.append(X)
+            corpus.append(features)
         # return corpus, labels
         length = [len(sent) for sent in corpus]
         length = np.asarray(length, dtype=np.int32)
@@ -253,20 +258,23 @@ def read_corpus(fn, mode, anno=None, has_label=True):
 def unfold_corpus(corpus):
     """
     Unfolds a corpus, converts it's sentences from a list of
-    '(char, lexical, label)' into two independent lists, a lexical words list 
-    and a labels list.
+    '(char, lexical, label)' into 3 independent lists, the lexical words list
+    teh labels list and the features list.
 
     # Return
         sentcs: a list of sentences, each sentence is a list of lexcial words
+        featvs: a list of features list,shape(sent, word, feats)
         labels: a list of labels' sequences
     """
     sentcs = []
     labels = []
+    featvs = []
     for sent in corpus:
-        sentcs.append([item[1] for item in sent])
-        labels.append([item[-1] for item in sent])
+        sentcs.append([item['r'] for item in sent])
+        labels.append([item['y'] for item in sent])
+        featvs.append([item['F'] for item in sent])
 
-    return sentcs, labels
+    return sentcs, featvs, labels
 
 
 def pretreatment(train_fn, valid_fn, test_fn, threshold=0, emb_type='char',
