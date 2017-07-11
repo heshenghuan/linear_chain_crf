@@ -30,24 +30,23 @@ def batch_index(length, batch_size, n_iter=100, shuffle=True):
 
 class linear_chain_CRF():
 
-    def __init__(self, nb_words, emb_dim, emb_matrix, feat_size, nb_classes,
-                 time_steps, batch_size=None, templates=None, l2_reg=0.,
-                 fine_tuning=False):
-        self.nb_words = nb_words
-        self.emb_dim = emb_dim
+    def __init__(self, feat_size, nb_classes, time_steps,
+                 batch_size=None, templates=None, l2_reg=0.):
+        # self.nb_words = nb_words
+        # self.emb_dim = emb_dim
         self.feat_size = feat_size
         self.nb_classes = nb_classes
         self.batch_size = batch_size
         self.time_steps = time_steps
         self.l2_reg = l2_reg
-        self.fine_tuning = fine_tuning
+        # self.fine_tuning = fine_tuning
 
-        if self.fine_tuning:
-            self.emb_matrix = tf.Variable(
-                emb_matrix, dtype=tf.float32, name="embeddings")
-        else:
-            self.emb_matrix = tf.constant(
-                emb_matrix, dtype=tf.float32, name="embeddings")
+        # if self.fine_tuning:
+        #     self.emb_matrix = tf.Variable(
+        #         emb_matrix, dtype=tf.float32, name="embeddings")
+        # else:
+        #     self.emb_matrix = tf.constant(
+        #         emb_matrix, dtype=tf.float32, name="embeddings")
 
         with tf.name_scope('inputs'):
             self.X = tf.placeholder(
@@ -105,8 +104,8 @@ class linear_chain_CRF():
                 pred, self.Y, self.X_len)
             cost = tf.reduce_mean(-log_likelihood)
             reg = tf.nn.l2_loss(self.W) + tf.nn.l2_loss(self.b)
-            if self.fine_tuning:
-                reg += tf.nn.l2_loss(self.emb_matrix)
+            # if self.fine_tuning:
+            #     reg += tf.nn.l2_loss(self.emb_matrix)
             cost += reg * self.l2_reg
             return cost
 
@@ -230,7 +229,7 @@ class linear_chain_CRF():
                     #                    test_loss: loss, test_acc: acc})
                     # test_summary_writer.add_summary(summary, step)
                     print '----------{}----------'.format(time.strftime("%Y-%m-%d %X", time.localtime()))
-                    print 'Iter {}: valid loss(avg)={:.6f}, valid acc(avg)={:.6f}'.format(step, loss, acc)
+                    print 'Iter {}: valid loss(avg)={:.6f}, acc(avg)={:.6f}'.format(step, loss, acc)
                     print 'round {}: max_acc={} BestIter={}\n'.format(epoch, max_acc, bestIter)
             print 'Optimization Finished!'
 

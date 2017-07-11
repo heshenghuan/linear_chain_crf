@@ -14,8 +14,8 @@ import tensorflow as tf
 from model import linear_chain_CRF
 from src.parameters import MAX_LEN
 from src.features import templates
-from src.utils import read_emb_from_file, eval_ner
-from src.parameters import MODEL_DIR, DATA_DIR, EMB_DIR, OUTPUT_DIR, LOG_DIR
+from src.utils import eval_ner
+from src.parameters import MODEL_DIR, DATA_DIR, OUTPUT_DIR, LOG_DIR
 from src.pretreatment import pretreatment, unfold_corpus, conv_corpus
 
 
@@ -32,17 +32,17 @@ tf.app.flags.DEFINE_string('model_dir', MODEL_DIR, 'Models dir')
 tf.app.flags.DEFINE_string('restore_model', 'None',
                            'Path of the model to restored')
 # tf.app.flags.DEFINE_string("emb_dir", EMBEDDING_DIR, "Embeddings dir")
-tf.app.flags.DEFINE_string("emb_type", "char", "Embeddings type: char/charpos")
-tf.app.flags.DEFINE_string(
-    "emb_file", EMB_DIR + "/weibo_charpos_vectors", "Embeddings file")
-tf.app.flags.DEFINE_integer("emb_dim", 100, "embedding size")
+# tf.app.flags.DEFINE_string("emb_type", "char", "Embeddings type: char/charpos")
+# tf.app.flags.DEFINE_string(
+#     "emb_file", EMB_DIR + "/weibo_charpos_vectors", "Embeddings file")
+# tf.app.flags.DEFINE_integer("emb_dim", 100, "embedding size")
 tf.app.flags.DEFINE_string("output_dir", OUTPUT_DIR, "Output dir")
 tf.app.flags.DEFINE_string(
-    "ner_feature_thresh", 0, "The minimum count OOV threshold for NER")
+    "feat_thresh", 0, "Only keep feats which occurs more than 'thresh' times.")
 # tf.app.flags.DEFINE_boolean('only_test', False, 'Only do the test')
 tf.app.flags.DEFINE_float("lr", 0.002, "learning rate")
-tf.app.flags.DEFINE_boolean(
-    'fine_tuning', True, 'Whether fine-tuning the embeddings')
+# tf.app.flags.DEFINE_boolean(
+#     'fine_tuning', True, 'Whether fine-tuning the embeddings')
 tf.app.flags.DEFINE_boolean(
     'eval_test', True, 'Whether evaluate the test data.')
 tf.app.flags.DEFINE_boolean(
@@ -169,21 +169,18 @@ def main(_):
     FLAGS.nb_classes = max(nb_classes, FLAGS.nb_classes)
 
     # Embedding layer's input_dim
-    nb_words = len(words2idx)
+    # nb_words = len(words2idx)
     # FLAGS.nb_words = nb_words
     # FLAGS.in_dim = FLAGS.nb_words + 1
 
     # load embeddings from file
-    print "#" * 67
-    print "# Reading embeddings from file: %s" % (FLAGS.emb_file)
     # print "#" * 67
-    # print "Read embedding type: %s" % (FLAGS.emb_type)
-    # emb_file = EMBEDDING_DIR + 'weibo_%s_vectors' % (FLAGS.emb_type)
-    emb_mat, idx_map = read_emb_from_file(FLAGS.emb_file, words2idx)
-    FLAGS.emb_dim = max(emb_mat.shape[1], FLAGS.emb_dim)
-    print "embeddings' size:", emb_mat.shape
-    if FLAGS.fine_tuning:
-        print "The embeddings will be fine-tuned!"
+    # print "# Reading embeddings from file: %s" % (FLAGS.emb_file)
+    # emb_mat, idx_map = read_emb_from_file(FLAGS.emb_file, words2idx)
+    # FLAGS.emb_dim = max(emb_mat.shape[1], FLAGS.emb_dim)
+    # print "embeddings' size:", emb_mat.shape
+    # if FLAGS.fine_tuning:
+        # print "The embeddings will be fine-tuned!"
 
     idx2label = dict((k, v) for v, k in FLAGS.label2idx.iteritems())
     # idx2words = dict((k, v) for v, k in FLAGS.words2idx.iteritems())
@@ -215,9 +212,8 @@ def main(_):
     print "#" * 67
 
     model = linear_chain_CRF(
-        nb_words, FLAGS.emb_dim, emb_mat, FLAGS.feat_size, FLAGS.nb_classes,
-        FLAGS.max_len, FLAGS.batch_size, templates, FLAGS.l2_reg,
-        FLAGS.fine_tuning)
+        FLAGS.feat_size, FLAGS.nb_classes, FLAGS.max_len,
+        FLAGS.batch_size, templates, FLAGS.l2_reg)
 
     pred_test, test_loss, test_acc = model.run(
         train_F, train_Y, train_lens,
