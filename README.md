@@ -40,18 +40,15 @@ Just run the **./crf_tagger.py** file. Or specify some arguments if you need, li
 python crf_tagger.py --lr 0.005 --fine_tuning False --l2_reg 0.0002
 ```
 
-Then the model will run on lr=0.005, not fine-tuning, l2_reg=0.0002 and all others default. Using `-h` will print all help informations. Some arguments has no effect for now, like `emb_type`, but after some updates those arguments might be useful.
+Then the model will run on lr=0.005, not fine-tuning, l2_reg=0.0002 and all others default. Using `-h` will print all help informations. Some arguments has no effect for now, like `restore_model`, but after some updates those arguments might be useful.
 
 ```
 $ python crf_tagger.py -h
 usage: crf_tagger.py [-h] [--train_data TRAIN_DATA] [--test_data TEST_DATA]
                      [--valid_data VALID_DATA] [--log_dir LOG_DIR]
                      [--model_dir MODEL_DIR] [--restore_model RESTORE_MODEL]
-                     [--emb_type EMB_TYPE] [--emb_file EMB_FILE]
-                     [--emb_dim EMB_DIM] [--output_dir OUTPUT_DIR]
-                     [--ner_feature_thresh NER_FEATURE_THRESH] [--lr LR]
-                     [--fine_tuning [FINE_TUNING]] [--nofine_tuning]
-                     [--eval_test [EVAL_TEST]] [--noeval_test]
+                     [--output_dir OUTPUT_DIR] [--feat_thresh FEAT_THRESH]
+                     [--lr LR] [--eval_test [EVAL_TEST]] [--noeval_test]
                      [--test_anno [TEST_ANNO]] [--notest_anno]
                      [--max_len MAX_LEN] [--nb_classes NB_CLASSES]
                      [--batch_size BATCH_SIZE] [--train_steps TRAIN_STEPS]
@@ -70,17 +67,11 @@ optional arguments:
                         Models dir
   --restore_model RESTORE_MODEL
                         Path of the model to restored
-  --emb_type EMB_TYPE   Embeddings type: char/charpos
-  --emb_file EMB_FILE   Embeddings file
-  --emb_dim EMB_DIM     embedding size
   --output_dir OUTPUT_DIR
                         Output dir
-  --ner_feature_thresh NER_FEATURE_THRESH
-                        The minimum count OOV threshold for NER
+  --feat_thresh FEAT_THRESH
+                        Only keep feats which occurs more than 'thresh' times.
   --lr LR               learning rate
-  --fine_tuning [FINE_TUNING]
-                        Whether fine-tuning the embeddings
-  --nofine_tuning
   --eval_test [EVAL_TEST]
                         Whether evaluate the test data.
   --noeval_test
@@ -101,5 +92,8 @@ optional arguments:
 
 ## History
 
+- **2017-07-11 ver 0.0.2**
+  - Removed all parameters about embeddings in basic CRF model.
+  - Deprecated all arguments about embeddings in 'crf_tagger'.
 - **2017-07-10 ver 0.0.1**
   - Basic linear-chain CRF completed.
