@@ -37,7 +37,7 @@ tf.app.flags.DEFINE_string('restore_model', 'None',
 #     "emb_file", EMB_DIR + "/weibo_charpos_vectors", "Embeddings file")
 # tf.app.flags.DEFINE_integer("emb_dim", 100, "embedding size")
 tf.app.flags.DEFINE_string("output_dir", OUTPUT_DIR, "Output dir")
-tf.app.flags.DEFINE_string(
+tf.app.flags.DEFINE_integer(
     "feat_thresh", 0, "Only keep feats which occurs more than 'thresh' times.")
 # tf.app.flags.DEFINE_boolean('only_test', False, 'Only do the test')
 tf.app.flags.DEFINE_float("lr", 0.002, "learning rate")
@@ -128,10 +128,11 @@ def main(_):
     print "Train:", FLAGS.train_data
     print "Valid:", FLAGS.valid_data
     print "Test: ", FLAGS.test_data
+    print "Feature threshold:", FLAGS.feat_thresh
     # pretreatment process: read, split and create vocabularies
     train_set, valid_set, test_set, dicts, max_len = pretreatment(
         FLAGS.train_data, FLAGS.valid_data, FLAGS.test_data,
-        threshold=FLAGS.ner_feature_thresh, emb_type=FLAGS.emb_type,
+        threshold=FLAGS.feat_thresh, emb_type='char',
         test_label=FLAGS.test_anno)
 
     # Reset the maximum sentence's length
@@ -157,7 +158,7 @@ def main(_):
 
     print "Lexical word size:     %d" % len(words2idx)
     print "Label size:            %d" % len(label2idx)
-    print "Features size:         %d" % FLAGS.feat_size
+    print "Features size:         %d" % len(feats2idx)
     print "-------------------------------------------------------------------"
     print "Training data size:    %d" % len(train_corpus)
     print "Validation data size:  %d" % len(valid_corpus)

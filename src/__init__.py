@@ -11,5 +11,3 @@ __all__ = [
     "features", "parameters",
     "utils", "pretreatment"
 ]
-
-__version__ = '0.0.1'

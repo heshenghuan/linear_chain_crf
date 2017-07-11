@@ -92,8 +92,10 @@ optional arguments:
 
 ## History
 
-- **2017-07-11 ver 0.0.2**
+- **2017-07-11 ver 0.1.2**
+  - Fix a bug type bug, feature_threshold should be a integer.
+- **2017-07-11 ver 0.1.1**
   - Removed all parameters about embeddings in basic CRF model.
   - Deprecated all arguments about embeddings in 'crf_tagger'.
-- **2017-07-10 ver 0.0.1**
+- **2017-07-10 ver 0.1.0**
   - Basic linear-chain CRF completed.
