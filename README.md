@@ -34,6 +34,8 @@ LOG_DIR = BASE_DIR + r'Summary/'
 
 ### Training 
 
+#### 1. Using pure CRF tagger
+
 Just run the **./crf_tagger.py** file. Or specify some arguments if you need, like this:
 
 ```
@@ -89,6 +91,76 @@ optional arguments:
                         number of test display step
   --l2_reg L2_REG       L2 regularization weight
 ```
+
+#### 2. Using embedding-enhanced CRF tagger
+
+Just run the **./emb_crf_tagger.py** file. Or specify some arguments if you need, like this:
+
+```
+python emb_crf_tagger.py --lr 0.005 --fine_tuning False --l2_reg 0.0002
+```
+
+Then the model will run on lr=0.005, not fine-tuning, l2_reg=0.0002 and all others default. Using `-h` will print all help informations.
+
+```
+$ python emb_crf_tagger.py -h
+usage: emb_crf_tagger.py [-h] [--train_data TRAIN_DATA]
+                         [--test_data TEST_DATA] [--valid_data VALID_DATA]
+                         [--log_dir LOG_DIR] [--model_dir MODEL_DIR]
+                         [--restore_model RESTORE_MODEL] [--emb_type EMB_TYPE]
+                         [--emb_file EMB_FILE] [--emb_dim EMB_DIM]
+                         [--output_dir OUTPUT_DIR] [--feat_thresh FEAT_THRESH]
+                         [--lr LR] [--fine_tuning [FINE_TUNING]]
+                         [--nofine_tuning] [--eval_test [EVAL_TEST]]
+                         [--noeval_test] [--test_anno [TEST_ANNO]]
+                         [--notest_anno] [--max_len MAX_LEN]
+                         [--nb_classes NB_CLASSES] [--batch_size BATCH_SIZE]
+                         [--train_steps TRAIN_STEPS]
+                         [--display_step DISPLAY_STEP] [--l2_reg L2_REG]
+
+optional arguments:
+  -h, --help            show this help message and exit
+  --train_data TRAIN_DATA
+                        Training data file
+  --test_data TEST_DATA
+                        Test data file
+  --valid_data VALID_DATA
+                        Validation data file
+  --log_dir LOG_DIR     The log dir
+  --model_dir MODEL_DIR
+                        Models dir
+  --restore_model RESTORE_MODEL
+                        Path of the model to restored
+  --emb_type EMB_TYPE   Embeddings type: char/charpos
+  --emb_file EMB_FILE   Embeddings file
+  --emb_dim EMB_DIM     embedding size
+  --output_dir OUTPUT_DIR
+                        Output dir
+  --feat_thresh FEAT_THRESH
+                        Only keep feats which occurs more than 'thresh' times.
+  --lr LR               learning rate
+  --fine_tuning [FINE_TUNING]
+                        Whether fine-tuning the embeddings
+  --nofine_tuning
+  --eval_test [EVAL_TEST]
+                        Whether evaluate the test data.
+  --noeval_test
+  --test_anno [TEST_ANNO]
+                        Whether the test data is labeled.
+  --notest_anno
+  --max_len MAX_LEN     max num of tokens per query
+  --nb_classes NB_CLASSES
+                        Tagset size
+  --batch_size BATCH_SIZE
+                        num example per mini batch
+  --train_steps TRAIN_STEPS
+                        trainning steps
+  --display_step DISPLAY_STEP
+                        number of test display step
+  --l2_reg L2_REG       L2 regularization weight
+```
+
+
 
 ## History
 
