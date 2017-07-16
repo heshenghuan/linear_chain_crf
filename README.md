@@ -92,6 +92,10 @@ optional arguments:
 
 ## History
 
+- **2017-07-16 ver 0.1.3**
+  - Reduce memory when training.
+  - Add embedding-enhanced CRF.
+  - New program 'emb\_crf\_tagger', using embeddings as feature.
 - **2017-07-11 ver 0.1.2**
   - Fix a bug type bug, feature_threshold should be a integer.
 - **2017-07-11 ver 0.1.1**
