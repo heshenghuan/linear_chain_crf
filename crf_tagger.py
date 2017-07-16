@@ -165,6 +165,10 @@ def main(_):
     print "Test data size:        %d" % len(test_corpus)
     print "Maximum sentence len:  %d" % FLAGS.max_len
 
+    del train_corpus
+    del valid_corpus
+    # del test_corpus
+
     # neural network's output_dim
     nb_classes = len(label2idx) + 1
     FLAGS.nb_classes = max(nb_classes, FLAGS.nb_classes)
@@ -197,6 +201,10 @@ def main(_):
     test_X, test_F, test_Y = conv_corpus(
         test_sentcs, test_featvs, test_labels,
         words2idx, feats2idx, label2idx, max_len=max_len)
+
+    del train_sentcs, train_featvs, train_labels
+    del valid_sentcs, valid_featvs, valid_labels
+    # del test_sentcs, test_featvs, test_labels
 
     print "#" * 67
     print "Training arguments"
