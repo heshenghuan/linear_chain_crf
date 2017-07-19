@@ -55,6 +55,7 @@ usage: crf_tagger.py [-h] [--train_data TRAIN_DATA] [--test_data TEST_DATA]
                      [--max_len MAX_LEN] [--nb_classes NB_CLASSES]
                      [--batch_size BATCH_SIZE] [--train_steps TRAIN_STEPS]
                      [--display_step DISPLAY_STEP] [--l2_reg L2_REG]
+                     [--log [LOG]] [--nolog]
 
 optional arguments:
   -h, --help            show this help message and exit
@@ -90,6 +91,8 @@ optional arguments:
   --display_step DISPLAY_STEP
                         number of test display step
   --l2_reg L2_REG       L2 regularization weight
+  --log [LOG]           Whether to record the TensorBoard log.
+  --nolog
 ```
 
 #### 2. Using embedding-enhanced CRF tagger
@@ -117,6 +120,7 @@ usage: emb_crf_tagger.py [-h] [--train_data TRAIN_DATA]
                          [--nb_classes NB_CLASSES] [--batch_size BATCH_SIZE]
                          [--train_steps TRAIN_STEPS]
                          [--display_step DISPLAY_STEP] [--l2_reg L2_REG]
+                         [--log [LOG]] [--nolog]
 
 optional arguments:
   -h, --help            show this help message and exit
@@ -158,12 +162,16 @@ optional arguments:
   --display_step DISPLAY_STEP
                         number of test display step
   --l2_reg L2_REG       L2 regularization weight
+  --log [LOG]           Whether to record the TensorBoard log.
+  --nolog
 ```
 
 
 
 ## History
 
+- **2017-07-19 ver 0.1.4**
+  - Log summary writer is available now, check usage for more information.
 - **2017-07-16 ver 0.1.3**
   - Reduce memory when training.
   - Add embedding-enhanced CRF.
