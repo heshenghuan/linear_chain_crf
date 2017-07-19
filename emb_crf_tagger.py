@@ -55,6 +55,8 @@ tf.app.flags.DEFINE_integer("batch_size", 200, "num example per mini batch")
 tf.app.flags.DEFINE_integer("train_steps", 50, "trainning steps")
 tf.app.flags.DEFINE_integer("display_step", 1, "number of test display step")
 tf.app.flags.DEFINE_float("l2_reg", 0.0001, "L2 regularization weight")
+tf.app.flags.DEFINE_boolean(
+    'log', True, 'Whether to record the TensorBoard log.')
 
 
 def convert_id_to_word(corpus, idx2label):

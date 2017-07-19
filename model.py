@@ -153,30 +153,32 @@ class linear_chain_CRF():
             optimizer = tf.train.AdamOptimizer(
                 learning_rate=self.lr).minimize(cost, global_step=global_step)
 
-        # with tf.name_scope('summary'):
-        #     localtime = time.strftime("%X %Y-%m-%d", time.localtime())
-        #     Summary_dir = FLAGS.log_dir + localtime
+        with tf.name_scope('summary'):
+            if FLAGS.log:
+                localtime = time.strftime("%Y%m%d-%X", time.localtime())
+                Summary_dir = FLAGS.log_dir + localtime
 
-        #     info = 'batch-{}, lr-{}, l2_reg-{}'.format(
-        #         self.batch_size, self.lr, self.l2_reg)
-        #     info = info + '\n' + self.train_file_path + '\n' + \
-        #         self.test_file_path + '\n' + 'Method: linear-chain CRF'
-        #     train_acc = tf.placeholder(tf.float32)
-        #     train_loss = tf.placeholder(tf.float32)
-        #     summary_acc = tf.scalar_summary('ACC ' + info, train_acc)
-        #     summary_loss = tf.scalar_summary('LOSS ' + info, train_loss)
-        #     summary_op = tf.merge_summary([summary_loss, summary_acc])
+                info = 'batch{}, lr{}, l2_reg{}'.format(
+                    self.batch_size, self.lr, self.l2_reg)
+                info += ';' + self.train_file_path + ';' + \
+                    self.test_file_path + ';' + 'Method:linear-chain CRF'
+                train_acc = tf.placeholder(tf.float32)
+                train_loss = tf.placeholder(tf.float32)
+                summary_acc = tf.summary.scalar('ACC ' + info, train_acc)
+                summary_loss = tf.summary.scalar('LOSS ' + info, train_loss)
+                summary_op = tf.summary.merge([summary_loss, summary_acc])
 
-        #     test_acc = tf.placeholder(tf.float32)
-        #     test_loss = tf.placeholder(tf.float32)
-        #     summary_test_acc = tf.scalar_summary('ACC ' + info, test_acc)
-        #     summary_test_loss = tf.scalar_summary('LOSS ' + info, test_loss)
-        #     summary_test = tf.merge_summary(
-        #         [summary_test_loss, summary_test_acc])
+                valid_acc = tf.placeholder(tf.float32)
+                valid_loss = tf.placeholder(tf.float32)
+                summary_valid_acc = tf.summary.scalar('ACC ' + info, valid_acc)
+                summary_valid_loss = tf.summary.scalar('LOSS ' + info, valid_loss)
+                summary_valid = tf.summary.merge(
+                    [summary_valid_loss, summary_valid_acc])
 
-        #     train_summary_writer = tf.train.SummaryWriter(
-        #         Summary_dir + '/train')
-        #     test_summary_writer = tf.train.SummaryWriter(Summary_dir + '/test')
+                train_summary_writer = tf.summary.FileWriter(
+                    Summary_dir + '/train')
+                valid_summary_writer = tf.summary.FileWriter(
+                    Summary_dir + '/valid')
 
         with tf.name_scope('saveModel'):
             localtime = time.strftime("%X %Y-%m-%d", time.localtime())
@@ -202,9 +204,10 @@ class linear_chain_CRF():
                         num, predication, train[self.Y],
                         train[self.X_len], trans_matrix)
                     acc = float(correct) / total
-                    # summary = sess.run(summary_op, feed_dict={
-                    #                    train_loss: loss, train_acc: acc})
-                    # train_summary_writer.add_summary(summary, step)
+                    if FLAGS.log:
+                        summary = sess.run(summary_op, feed_dict={
+                            train_loss: loss, train_acc: acc})
+                        train_summary_writer.add_summary(summary, step)
                     print 'Iter {}: mini-batch loss={:.6f}, acc={:.6f}'.format(step, loss, acc)
                 saver.save(sess, save_dir, global_step=step)
 
@@ -225,9 +228,10 @@ class linear_chain_CRF():
                     if acc > max_acc:
                         max_acc = acc
                         bestIter = step
-                    # summary = sess.run(summary_test, feed_dict={
-                    #                    test_loss: loss, test_acc: acc})
-                    # test_summary_writer.add_summary(summary, step)
+                    if FLAGS.log:
+                        summary = sess.run(summary_valid, feed_dict={
+                            valid_loss: loss, valid_acc: acc})
+                        valid_summary_writer.add_summary(summary, step)
                     print '----------{}----------'.format(time.strftime("%Y-%m-%d %X", time.localtime()))
                     print 'Iter {}: valid loss(avg)={:.6f}, acc(avg)={:.6f}'.format(step, loss, acc)
                     print 'round {}: max_acc={} BestIter={}\n'.format(epoch, max_acc, bestIter)
@@ -388,6 +392,33 @@ class embedding_CRF(linear_chain_CRF):
             if not os.path.exists(save_dir):
                 os.makedirs(save_dir)
 
+        with tf.name_scope('summary'):
+            if FLAGS.log:
+                localtime = time.strftime("%Y%m%d-%X", time.localtime())
+                Summary_dir = FLAGS.log_dir + localtime
+
+                info = 'batch{}, lr{}, l2_reg{}'.format(
+                    self.batch_size, self.lr, self.l2_reg)
+                info += ';' + self.train_file_path + ';' + \
+                    self.test_file_path + ';' + 'Method:.emb-enhance CRF'
+                train_acc = tf.placeholder(tf.float32)
+                train_loss = tf.placeholder(tf.float32)
+                summary_acc = tf.summary.scalar('ACC ' + info, train_acc)
+                summary_loss = tf.summary.scalar('LOSS ' + info, train_loss)
+                summary_op = tf.summary.merge([summary_loss, summary_acc])
+
+                valid_acc = tf.placeholder(tf.float32)
+                valid_loss = tf.placeholder(tf.float32)
+                summary_valid_acc = tf.summary.scalar('ACC ' + info, valid_acc)
+                summary_valid_loss = tf.summary.scalar('LOSS ' + info, valid_loss)
+                summary_valid = tf.summary.merge(
+                    [summary_valid_loss, summary_valid_acc])
+
+                train_summary_writer = tf.summary.FileWriter(
+                    Summary_dir + '/train')
+                valid_summary_writer = tf.summary.FileWriter(
+                    Summary_dir + '/valid')
+
         with tf.Session() as sess:
             sess.run(tf.initialize_all_variables())
             max_acc, bestIter = 0., 0
@@ -405,6 +436,10 @@ class embedding_CRF(linear_chain_CRF):
                         num, predication, train[self.Y],
                         train[self.X_len], trans_matrix)
                     acc = float(correct) / total
+                    if FLAGS.log:
+                        summary = sess.run(summary_op, feed_dict={
+                            train_loss: loss, train_acc: acc})
+                        train_summary_writer.add_summary(summary, step)
                     print 'Iter {}: mini-batch loss={:.6f}, acc={:.6f}'.format(step, loss, acc)
                 saver.save(sess, save_dir, global_step=step)
 
@@ -425,6 +460,10 @@ class embedding_CRF(linear_chain_CRF):
                     if acc > max_acc:
                         max_acc = acc
                         bestIter = step
+                    if FLAGS.log:
+                        summary = sess.run(summary_valid, feed_dict={
+                            valid_loss: loss, valid_acc: acc})
+                        valid_summary_writer.add_summary(summary, step)
                     print '----------{}----------'.format(time.strftime("%Y-%m-%d %X", time.localtime()))
                     print 'Iter {}: valid loss(avg)={:.6f}, acc(avg)={:.6f}'.format(step, loss, acc)
                     print 'round {}: max_acc={} BestIter={}\n'.format(epoch, max_acc, bestIter)
