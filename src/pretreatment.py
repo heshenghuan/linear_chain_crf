@@ -13,70 +13,50 @@ import numpy as np
 import tensorflow as tf
 from collections import defaultdict
 from parameters import OOV, MAX_LEN
-from features import templates, escape, readiter, feature_extractor
+from features import fields, pmi_fields, templates, pmi_templates
+from features import feature_extractor
 
 # keras API
 pad_sequences = tf.contrib.keras.preprocessing.sequence.pad_sequences
 
 
-def create_dicts(train_fn, valid_fn, test_fn, threshold, mode, anno=None):
+def create_dicts(train, valid, test, threshold, mode, anno=None):
     """
     Returns three dicts, which are feature dictionary, word dictionary
     and label dictionary.
 
     ## Params
-        train_fn: train data file path
-        valid_fn: valid data file path
-        test_fn: test data file path
+        train: train data
+        valid: valid data
+        test: test data
         threshold: threshold value of feature frequency
         mode: the type of embeddings(char/charpos)
         anno: whether the data is annotated
     ## Return
-        returns 3 dicts, and each is a map from term to index.
+        returns 3 dicts
     """
-    train = cs.open(train_fn, encoding='utf-8').read().strip().split('\n\n')
-    if valid_fn is not None:
-        valid = cs.open(
-            valid_fn, encoding='utf-8').read().strip().split('\n\n')
-    if test_fn is not None:
-        test = cs.open(
-            test_fn, encoding='utf-8').read().strip().split('\n\n')
 
     def get_label(stream, pos):
-        return [[e.split()[pos]for e in line.strip().split('\n')]
-                for line in stream]
+        return [[item[pos] for item in sentc] for sentc in stream]
 
-    words = (get_label(train, 0)  # 训练集字符集合
-             + ([] if valid_fn is None else get_label(valid, 0))  # 验证集字符集合
-             + ([] if test_fn is None else get_label(test, 0)))  # 测试集字符集合
-    labels = (get_label(train, -1)
-              + ([] if valid_fn is None else get_label(valid, -1))
-              + ([] if test_fn is None else get_label(test, -1)))
-    corpus_feats = []
-    corpus_words = []
-    max_len = MAX_LEN
-    for lwds, llbs in zip(words, labels):
-        X = convdata_helper(lwds, llbs, mode, anno)
-        max_len = max(max_len, len(X))
-        features = apply_feature_templates(X)
-        feats = []
-        for char in X:
-            corpus_words.append(char[1])
-        for i, ftv in enumerate(features):
-            # escape函数将ft中的':'替换成'__COLON__'
-            feat = [escape(ft) for ft in ftv['F']]
-            feats.append(feat)
-        assert len(lwds) == len(llbs)
-        assert len(lwds) == len(feats)
-        corpus_feats.append(feats)
+    words = (get_label(train, 'r')  # 训练集字符集合
+             + ([] if valid is None else get_label(valid, 'r'))  # 验证集字符集合
+             + ([] if test is None else get_label(test, 'r')))  # 测试集字符集合
+    labels = (get_label(train, 'y')
+              + ([] if valid is None else get_label(valid, 'y'))
+              + ([] if test is None else get_label(test, 'y')))
+    featvs = (get_label(train, 'F')
+              + ([] if valid is None else get_label(valid, 'F'))
+              + ([] if test is None else get_label(test, 'F')))
+
     feature_to_freq = defaultdict(int)
-    for feats in corpus_feats:  # feats一句话的特征列表
-        for ftv in feats:  # ftv一句中某个字的特征集合
-            for ft in ftv:  # ft这句话中某个字的按模板生成的某个特征
-                feature_to_freq[ft] += 1
+    for sentc_feats in featvs:  # feats一句话的特征列表
+        for feats in sentc_feats:  # ftv一句中某个字的特征集合
+            for feat in feats:  # ft这句话中某个字的按模板生成的某个特征
+                feature_to_freq[feat] += 1
     features_to_id = {OOV: 1}
     cur_idx = 2
-    for sentc_feats in corpus_feats:
+    for sentc_feats in featvs:
         for feats in sentc_feats:
             for ft in feats:
                 if (ft not in features_to_id):
@@ -88,38 +68,39 @@ def create_dicts(train_fn, valid_fn, test_fn, threshold, mode, anno=None):
     word_to_id = {}
     cur_idx = 1
     # print 'construct dict!!'
-    for t in corpus_words:
-        if t not in word_to_id:
-            # print t, cur_idx
-            word_to_id[t] = cur_idx
-            cur_idx += 1
+    for sentc in words:
+        for t in sentc:
+            if t not in word_to_id:
+                word_to_id[t] = cur_idx
+                cur_idx += 1
 
     label_to_id = {}
     cur_idx = 1
-    for ilabels in labels:
-        for t in ilabels:
-            if t not in label_to_id:
-                label_to_id[t] = cur_idx
+    for sent_lbs in labels:
+        for l in sent_lbs:
+            if l not in label_to_id:
+                label_to_id[l] = cur_idx
                 cur_idx += 1
-    return features_to_id, word_to_id, label_to_id, max_len
+    return features_to_id, word_to_id, label_to_id
 
 
-def convdata_helper(chars, labels, repre, anno):
+def convdata_helper(sentc, fields, repre, anno):
     """
-    将chars和labels按照repre指定的形式处理：c为字符，w为词，l为标注
+    According to the parameter 'repre', convert sentc to a given format.
+    If: 'repre' == 'char', add key-value 'r' = char
+        'repre' == 'charpos', add key-value 'r' = char+pos
+    The 'pos' is the position of char in a Chinese word after segmentation.
 
-    1.repre == char: X = [(c, c, l) * n]
-    2.repre == charpos: X = [(c, c+pos, l) * n]
+    1.repre == char: sentc = [{'w': x, 'r': c, 'y': y, 'F': []} * n]
+    2.repre == charpos: sentc = [{'w': x, 'r': c+pos, 'y': y, 'F': []} * n]
     """
-    X = []
     if repre == 'char' and anno is None:
-        for c, l in zip(chars, labels):
-            X.append((c, c, l))
+        for item in sentc:
+            item['r'] = item['w']
     else:
-        sent = ''.join(chars)
-        token_tag_list = jieba.cut(sent)  # pseg.cut(sent)
+        sent = ''.join(item['w'] for item in sentc)
+        token_tag_list = jieba.cut(sent)
         count = 0
-        # for token_str, pos_tag in token_tag_list:
         for token_str in token_tag_list:
             for i, char in enumerate(token_str):
                 if repre == 'charpos':
@@ -128,36 +109,41 @@ def convdata_helper(chars, labels, repre, anno):
                     raise ValueError(
                         'representation cannot take value %s!\n' % repre)
                 if anno is None:
-                    fields = (char, r, labels[count])
+                    # fields = (char, r, labels[count])
+                    sentc[count]['r'] = r
                 else:
                     raise ValueError(
                         'annotation cannot take value %s!\n' % anno)
                 count += 1
-                X.append(fields)
-    return X
+    return sentc
 
 
 def apply_feature_templates(sntc):
     """
-    对句子应用特征模板抽取特征，会将句子的变量的类型改为dict
-    sntc原始为(w,r,y)的列表，readiter会将其变成一个字典，有w,r,y和F三个域
-    分别存储原来的char,repre,label和抽取的特征
+    Apply feature templates, generate feats for each sentence.
     """
-    if len(sntc[0]) == 3:
-        fields_template = 'w r y'
-    # elif len(sntc[0]) == 4:
-    #     fields_template = 'w r s y'
+    if len(sntc[0]) == 4:
+        # {'w': x, 'r':r, 'y': y, 'F': []}
+        fields_template = 'w r y F'
+    elif len(sntc[0]) == 5:
+        # {'w': x, 'r': r, 'p': p, 'y': y, 'F': []}
+        fields_template = 'w r p y F'
     # elif len(sntc[0]) == 5:
     #     fields_template = 'w r s p y'
     else:
-        raise ValueError('unknow representation!\n')
-    if fields_template == 'w r y':
+        raise ValueError('Unknow representation!\n')
+    if fields_template == 'w r y F':
         features = feature_extractor(
-            readiter(sntc, fields_template.split(' ')),
+            # readiter(sntc, fields_template.split(' ')),
+            sntc,
             templates=templates)
-    else:
+    elif fields_template == 'w r p y F':
         features = feature_extractor(
-            readiter(sntc, fields_template.split(' ')))
+            # readiter(sntc, fields_template.split(' ')),
+            sntc,
+            templates=pmi_templates)
+    else:
+        raise ValueError('Unknow input fields!\n')
     return features
 
 
@@ -173,7 +159,7 @@ def conv_feats(F, feat2idx, max_len=MAX_LEN):
     feats = []
     for feat in F:
         feats.append([feat2idx.get(f, 1) for f in feat])
-    for i in xrange(max_len-sent_len):
+    for i in xrange(max_len - sent_len):
         feats.append([0] * feat_num)
     return feats
 
@@ -190,6 +176,7 @@ def conv_corpus(sentcs, featvs, labels, word2idx, feat2idx, label2idx, max_len=M
 
     # Parameters
         sentcs: the list of corpus' sentences.
+        featvs: the list of feats for sentences.
         labels: the list of sentcs's label sequences.
         word2idx: the vocabulary of words, a map.
         word2idx: the vocabulary of labels, a map.
@@ -197,7 +184,8 @@ def conv_corpus(sentcs, featvs, labels, word2idx, feat2idx, label2idx, max_len=M
 
     # Returns
         new_sentcs: 2D tensor of input corpus
-        new_labels: 2D tensor of input corpus's label sequences
+        new_featvs: 3D tensor of input corpus' features
+        new_labels: 2D tensor of input corpus' label sequences
     """
     assert len(sentcs) == len(
         labels), "The length of input sentences and labels not equal."
@@ -217,42 +205,47 @@ def conv_corpus(sentcs, featvs, labels, word2idx, feat2idx, label2idx, max_len=M
     return new_sentcs, new_featvs, new_labels
 
 
-def read_corpus(fn, mode, anno=None, has_label=True):
+def read_corpus(fn, mode, anno=None, has_label=True, fields=fields):
     """
     Reads corpus file, then returns the list of sentences and labelSeq.
 
     # Parameters
         mode: char/charpos
         anno: has to be None
+        fields: the input fields
 
     # Returns
         corpus: the list of corpus' sentences, each sentence is a list of
                 tuple '(char, lexical, label)'
         length: the length of each sentence in corpus
+        max_len: the maximum length of sentences
     """
+    if fn is None:
+        return None
     with cs.open(fn, encoding='utf-8') as src:
         stream = src.read().strip().split('\n\n')
         corpus = []
-        # labels = []
+        max_len = MAX_LEN
         for line in stream:
             line = line.strip().split('\n')
+            max_len = max(max_len, len(line))
             sentc = []
-            label = []
             for e in line:
                 token = e.split()
-                sentc.append(token[0])
-                if has_label:
-                    label.append(token[-1])
-                else:
-                    label.append(None)
-            X = convdata_helper(sentc, label, mode, anno)
+                assert len(token) == len(fields)
+                # depends on fields, item could be like:
+                # 1. {'w': x, 'y': y, 'F': []}
+                # 2. {'w': x, 'p': p, 'y':y, 'F': []}
+                item = {'F': []}  # F field reserved for feats
+                for i in range(len(fields)):
+                    item[fields[i]] = token[i]
+                sentc.append(item)
+            X = convdata_helper(sentc, fields, mode, anno)
             features = apply_feature_templates(X)
-            # corpus.append(X)
             corpus.append(features)
-        # return corpus, labels
         length = [len(sent) for sent in corpus]
         length = np.asarray(length, dtype=np.int32)
-        return corpus, length
+        return corpus, length, max_len
 
 
 def unfold_corpus(corpus):
@@ -278,21 +271,24 @@ def unfold_corpus(corpus):
 
 
 def pretreatment(train_fn, valid_fn, test_fn, threshold=0, emb_type='char',
-                 anno=None, test_label=True):
+                 anno=None, test_label=True, fields=fields):
     """
     """
     print "###################################################################"
     print "# Pretreatment process."
     print "###################################################################"
-    dict_feat, dict_lex, dict_y, max_len = create_dicts(
-        train_fn, valid_fn, test_fn, threshold, emb_type, anno)
-    # Reads the train, valid and test file
-    train_corpus, train_lens = read_corpus(
-        train_fn, emb_type, anno, test_label)
-    valid_corpus, valid_lens = read_corpus(
-        valid_fn, emb_type, anno, test_label)
-    test_corpus, test_lens = read_corpus(
-        test_fn, emb_type, anno, test_label)
+    # Step 1: Read the train, valid and test file
+    train_corpus, train_lens, train_max_len = read_corpus(
+        train_fn, emb_type, anno, test_label, fields=fields)
+    valid_corpus, valid_lens, valid_max_len = read_corpus(
+        valid_fn, emb_type, anno, test_label, fields=fields)
+    test_corpus, test_lens, test_max_len = read_corpus(
+        test_fn, emb_type, anno, test_label, fields=fields)
+    # Get maximum length of sentence
+    max_len = max(train_max_len, valid_max_len, test_max_len)
+    # Step 2: Generate dicts from corpus
+    dict_feat, dict_lex, dict_y = create_dicts(
+        train_corpus, valid_corpus, test_corpus, threshold, emb_type, anno)
     dic = {'words2idx': dict_lex, 'label2idx': dict_y, 'feats2idx': dict_feat}
     train = (train_corpus, train_lens)
     valid = (valid_corpus, valid_lens)
