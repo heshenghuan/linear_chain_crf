@@ -55,7 +55,7 @@ usage: crf_tagger.py [-h] [--train_data TRAIN_DATA] [--test_data TEST_DATA]
                      [--max_len MAX_LEN] [--nb_classes NB_CLASSES]
                      [--batch_size BATCH_SIZE] [--train_steps TRAIN_STEPS]
                      [--display_step DISPLAY_STEP] [--l2_reg L2_REG]
-                     [--log [LOG]] [--nolog]
+                     [--log [LOG]] [--nolog] [--format FORMAT]
 
 optional arguments:
   -h, --help            show this help message and exit
@@ -93,6 +93,7 @@ optional arguments:
   --l2_reg L2_REG       L2 regularization weight
   --log [LOG]           Whether to record the TensorBoard log.
   --nolog
+  --format FORMAT       input data format('wy' or 'wpy')
 ```
 
 #### 2. Using embedding-enhanced CRF tagger
@@ -120,7 +121,7 @@ usage: emb_crf_tagger.py [-h] [--train_data TRAIN_DATA]
                          [--nb_classes NB_CLASSES] [--batch_size BATCH_SIZE]
                          [--train_steps TRAIN_STEPS]
                          [--display_step DISPLAY_STEP] [--l2_reg L2_REG]
-                         [--log [LOG]] [--nolog]
+                         [--log [LOG]] [--nolog] [--format FORMAT]
 
 optional arguments:
   -h, --help            show this help message and exit
@@ -164,12 +165,17 @@ optional arguments:
   --l2_reg L2_REG       L2 regularization weight
   --log [LOG]           Whether to record the TensorBoard log.
   --nolog
+  --format FORMAT       input data format('wy' or 'wpy')
 ```
 
 
 
 ## History
 
+- **2017-07-21 ver 0.1.5**
+  - Use a new preprocessing process now.
+  - Modified input fields, now can change 'fields' for different input data.
+  - Now support pmi pretag input data with argument '--format'.
 - **2017-07-19 ver 0.1.4**
   - Log summary writer is available now, check usage for more information.
 - **2017-07-16 ver 0.1.3**
