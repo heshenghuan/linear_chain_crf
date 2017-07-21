@@ -13,7 +13,7 @@ import codecs as cs
 import tensorflow as tf
 from model import linear_chain_CRF
 from src.parameters import MAX_LEN
-from src.features import templates
+from src.features import templates, pmi_templates, fields, pmi_fields
 from src.utils import eval_ner
 from src.parameters import MODEL_DIR, DATA_DIR, OUTPUT_DIR, LOG_DIR
 from src.pretreatment import pretreatment, unfold_corpus, conv_corpus
@@ -57,6 +57,7 @@ tf.app.flags.DEFINE_integer("display_step", 1, "number of test display step")
 tf.app.flags.DEFINE_float("l2_reg", 0.0001, "L2 regularization weight")
 tf.app.flags.DEFINE_boolean(
     'log', True, 'Whether to record the TensorBoard log.')
+tf.app.flags.DEFINE_string("format", "wy", "input data format('wy' or 'wpy')")
 
 
 def convert_id_to_word(corpus, idx2label):
@@ -131,11 +132,22 @@ def main(_):
     print "Valid:", FLAGS.valid_data
     print "Test: ", FLAGS.test_data
     print "Feature threshold:", FLAGS.feat_thresh
+
+    # Choose fields templates & features templates
+    if FLAGS.format == 'wy':
+        FLAGS.fields = fields
+        FLAGS.templates = templates
+    elif FLAGS.format == 'wpy':
+        FLAGS.fields = pmi_fields
+        FLAGS.templates = pmi_templates
+    else:
+        raise ValueError('Unknow input fields!\n')
+        return
     # pretreatment process: read, split and create vocabularies
     train_set, valid_set, test_set, dicts, max_len = pretreatment(
         FLAGS.train_data, FLAGS.valid_data, FLAGS.test_data,
         threshold=FLAGS.feat_thresh, emb_type='char',
-        test_label=FLAGS.test_anno)
+        test_label=FLAGS.test_anno, fields=FLAGS.fields)
 
     # Reset the maximum sentence's length
     # max_len = max(MAX_LEN, max_len)
@@ -224,7 +236,7 @@ def main(_):
 
     model = linear_chain_CRF(
         FLAGS.feat_size, FLAGS.nb_classes, FLAGS.max_len,
-        FLAGS.batch_size, templates, FLAGS.l2_reg)
+        FLAGS.batch_size, FLAGS.templates, FLAGS.l2_reg)
 
     pred_test, test_loss, test_acc = model.run(
         train_F, train_Y, train_lens,
