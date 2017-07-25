@@ -109,22 +109,52 @@ class linear_chain_CRF():
             cost += reg * self.l2_reg
             return cost
 
-    def accuracy(self, num, pred, y, y_lens, trans_matrix):
+    def seq_score(self, pred):
+        with tf.name_scope('seq_score'):
+            seq_score = tf.contrib.crf.crf_sequence_score(
+                pred, self.Y, self.X_len, self.transition)
+            return seq_score
+
+    def viterbi_decode(self, num, pred, y_lens, trans_matrix):
         """
         Given predicted unary_scores, using viterbi_decode find the best tags
-        sequence. Then count the correct labels and total labels.
+        sequence.
+        """
+        labels = []
+        scores = []
+        for i in xrange(num):
+            p_len = y_lens[i]
+            unary_scores = pred[i][:p_len]
+            tags_seq, tags_score = tf.contrib.crf.viterbi_decode(
+                unary_scores, trans_matrix)
+            labels.append(tags_seq)
+            scores.append(tags_score)
+        return (labels, scores)
+
+    def accuracy(self, num, labels, y, y_lens):
+        """
+        Count the correct labels num and total labels num.
         """
         correct_labels = 0
         total_labels = 0
         for i in xrange(num):
             p_len = y_lens[i]
-            unary_scores = pred[i][:p_len]
             gold = y[i][:p_len]
-            tags_seq, _ = tf.contrib.crf.viterbi_decode(
-                unary_scores, trans_matrix)
+            tags_seq = labels[i]
             correct_labels += np.sum(np.equal(tags_seq, gold))
             total_labels += p_len
         return (correct_labels, total_labels)
+
+    def margin_loss(self, num, labels, scores, y, y_lens, y_scores):
+        """
+        Calculate margin loss value.
+        """
+        value = 0.
+        for i in xrange(num):
+            p_len = y_lens[i]
+            delta = np.sum(np.not_equal(labels[i], y[i][:p_len]))
+            value += scores[i] + delta - y_scores[i]
+        return value / num
 
     def run(
         self,
@@ -146,6 +176,9 @@ class linear_chain_CRF():
         # predication & cost-calculation
         pred = self.inference(self.X, self.X_len)
         cost = self.loss(pred)
+
+        # golden tag sequences' seqscore
+        y_scores = self.seq_score(pred)
 
         with tf.name_scope('train'):
             global_step = tf.Variable(
@@ -171,7 +204,8 @@ class linear_chain_CRF():
                 valid_acc = tf.placeholder(tf.float32)
                 valid_loss = tf.placeholder(tf.float32)
                 summary_valid_acc = tf.summary.scalar('ACC ' + info, valid_acc)
-                summary_valid_loss = tf.summary.scalar('LOSS ' + info, valid_loss)
+                summary_valid_loss = tf.summary.scalar(
+                    'LOSS ' + info, valid_loss)
                 summary_valid = tf.summary.merge(
                     [summary_valid_loss, summary_valid_acc])
 
@@ -197,34 +231,43 @@ class linear_chain_CRF():
             for epoch in xrange(self.training_iter):
 
                 for train, num in self.get_batch_data(train_x, train_y, train_lens, self.batch_size):
-                    _, step, trans_matrix, loss, predication = sess.run(
-                        [optimizer, global_step, self.transition, cost, pred],
+                    _, step, trans_matrix, loss, predication, gold_scores = sess.run(
+                        [optimizer, global_step, self.transition, cost, pred, y_scores],
                         feed_dict=train)
+                    tags_seqs, tags_scores = self.viterbi_decode(
+                        num, predication, train[self.X_len], trans_matrix)
                     correct, total = self.accuracy(
-                        num, predication, train[self.Y],
-                        train[self.X_len], trans_matrix)
+                        num, tags_seqs, train[self.Y], train[self.X_len])
                     acc = float(correct) / total
+                    m_loss = self.margin_loss(
+                        num, tags_seqs, tags_scores, train[self.Y],
+                        train[self.X_len], gold_scores)
                     if FLAGS.log:
                         summary = sess.run(summary_op, feed_dict={
                             train_loss: loss, train_acc: acc})
                         train_summary_writer.add_summary(summary, step)
-                    print 'Iter {}: mini-batch loss={:.6f}, acc={:.6f}'.format(step, loss, acc)
+                    print 'Iter {}: mini-batch loss={:.6f}, acc={:.6f}, mloss={:.6f}'.format(step, loss, acc, m_loss)
                 saver.save(sess, save_dir, global_step=step)
 
                 if epoch % self.display_step == 0:
-                    rd, loss, correct, total = 0, 0., 0, 0
+                    rd, loss, correct, total, m_loss = 0, 0., 0, 0, 0.
                     for valid, num in self.get_batch_data(valid_x, valid_y, valid_lens, self.batch_size):
-                        trans_matrix, _loss, predication = sess.run(
-                            [self.transition, cost, pred], feed_dict=valid)
+                        trans_matrix, _loss, predication, gold_scores = sess.run(
+                            [self.transition, cost, pred, y_scores], feed_dict=valid)
                         loss += _loss
+                        tags_seqs, tags_scores = self.viterbi_decode(
+                            num, predication, valid[self.X_len], trans_matrix)
                         tmp = self.accuracy(
-                            num, predication, valid[self.Y],
-                            valid[self.X_len], trans_matrix)
+                            num, tags_seqs, valid[self.Y], valid[self.X_len])
+                        m_loss += self.margin_loss(
+                            num, tags_seqs, tags_scores, valid[self.Y],
+                            valid[self.X_len], gold_scores)
                         correct += tmp[0]
                         total += tmp[1]
                         rd += 1
                     loss /= rd
                     acc = float(correct) / total
+                    m_loss /= rd
                     if acc > max_acc:
                         max_acc = acc
                         bestIter = step
@@ -233,7 +276,7 @@ class linear_chain_CRF():
                             valid_loss: loss, valid_acc: acc})
                         valid_summary_writer.add_summary(summary, step)
                     print '----------{}----------'.format(time.strftime("%Y-%m-%d %X", time.localtime()))
-                    print 'Iter {}: valid loss(avg)={:.6f}, acc(avg)={:.6f}'.format(step, loss, acc)
+                    print 'Iter {}: valid loss(avg)={:.6f}, acc(avg)={:.6f}, mloss={:.6f}'.format(step, loss, acc, m_loss)
                     print 'round {}: max_acc={} BestIter={}\n'.format(epoch, max_acc, bestIter)
             print 'Optimization Finished!'
 
@@ -246,15 +289,13 @@ class linear_chain_CRF():
                     [self.transition, cost, pred], feed_dict=test)
                 loss += _loss
                 rd += 1
-                for i in xrange(num):
-                    p_len = test[self.X_len][i]
-                    unary_scores = predication[i][:p_len]
-                    gold = test[self.Y][i][:p_len]
-                    tags_seq, _ = tf.contrib.crf.viterbi_decode(
-                        unary_scores, trans_matrix)
-                    correct_labels += np.sum(np.equal(tags_seq, gold))
-                    total_labels += p_len
-                    pred_test_y.append(tags_seq)
+                tags_seqs, tags_scores = self.viterbi_decode(
+                    num, predication, test[self.X_len], trans_matrix)
+                tmp = self.accuracy(
+                    num, tags_seqs, test[self.Y], test[self.X_len])
+                correct_labels += tmp[0]
+                total_labels += tmp[1]
+                pred_test_y.extend(tags_seqs)
             acc = float(correct_labels) / total_labels
             loss /= rd
             return pred_test_y, loss, acc
@@ -410,7 +451,8 @@ class embedding_CRF(linear_chain_CRF):
                 valid_acc = tf.placeholder(tf.float32)
                 valid_loss = tf.placeholder(tf.float32)
                 summary_valid_acc = tf.summary.scalar('ACC ' + info, valid_acc)
-                summary_valid_loss = tf.summary.scalar('LOSS ' + info, valid_loss)
+                summary_valid_loss = tf.summary.scalar(
+                    'LOSS ' + info, valid_loss)
                 summary_valid = tf.summary.merge(
                     [summary_valid_loss, summary_valid_acc])
 
@@ -432,9 +474,10 @@ class embedding_CRF(linear_chain_CRF):
                     _, step, trans_matrix, loss, predication = sess.run(
                         [optimizer, global_step, self.transition, cost, pred],
                         feed_dict=train)
+                    tags_seqs, _ = self.viterbi_decode(
+                        num, predication, train[self.X_len], trans_matrix)
                     correct, total = self.accuracy(
-                        num, predication, train[self.Y],
-                        train[self.X_len], trans_matrix)
+                        num, tags_seqs, train[self.Y], train[self.X_len])
                     acc = float(correct) / total
                     if FLAGS.log:
                         summary = sess.run(summary_op, feed_dict={
@@ -449,9 +492,10 @@ class embedding_CRF(linear_chain_CRF):
                         trans_matrix, _loss, predication = sess.run(
                             [self.transition, cost, pred], feed_dict=valid)
                         loss += _loss
+                        tags_seqs, _ = self.viterbi_decode(
+                            num, predication, valid[self.X_len], trans_matrix)
                         tmp = self.accuracy(
-                            num, predication, valid[self.Y],
-                            valid[self.X_len], trans_matrix)
+                            num, tags_seqs, valid[self.Y], valid[self.X_len])
                         correct += tmp[0]
                         total += tmp[1]
                         rd += 1
@@ -478,15 +522,13 @@ class embedding_CRF(linear_chain_CRF):
                     [self.transition, cost, pred], feed_dict=test)
                 loss += _loss
                 rd += 1
-                for i in xrange(num):
-                    p_len = test[self.X_len][i]
-                    unary_scores = predication[i][:p_len]
-                    gold = test[self.Y][i][:p_len]
-                    tags_seq, _ = tf.contrib.crf.viterbi_decode(
-                        unary_scores, trans_matrix)
-                    correct_labels += np.sum(np.equal(tags_seq, gold))
-                    total_labels += p_len
-                    pred_test_y.append(tags_seq)
+                tags_seqs, tags_scores = self.viterbi_decode(
+                    num, predication, test[self.X_len], trans_matrix)
+                tmp = self.accuracy(
+                    num, tags_seqs, test[self.Y], test[self.X_len])
+                correct_labels += tmp[0]
+                total_labels += tmp[1]
+                pred_test_y.extend(tags_seqs)
             acc = float(correct_labels) / total_labels
             loss /= rd
             return pred_test_y, loss, acc
