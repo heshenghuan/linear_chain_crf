@@ -172,6 +172,10 @@ optional arguments:
 
 ## History
 
+- **2017-07-25 ver 0.1.6**
+  - Add viterbi decode method, as a repalcement of accuracy method to decode.
+  - Modified accuracy function, it only do accuracy calculation.
+  - Add margin loss value calculate method.
 - **2017-07-21 ver 0.1.5**
   - Use a new preprocessing process now.
   - Modified input fields, now can change 'fields' for different input data.
