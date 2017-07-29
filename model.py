@@ -71,7 +71,12 @@ class linear_chain_CRF():
             )
 
         with tf.name_scope('biases'):
-            self.b = tf.Variable(tf.zeros([self.nb_classes], name="bias"))
+            self.b = tf.get_variable(
+                shape=[self.nb_classes],
+                initializer=tf.truncated_normal_initializer(stddev=0.01),
+                name='bias'
+            )
+            # self.b = tf.Variable(tf.zeros([self.nb_classes], name="bias"))
         return
 
     def inference(self, X, X_len, reuse=None):
@@ -355,7 +360,12 @@ class embedding_CRF(linear_chain_CRF):
             )
 
         with tf.name_scope('biases'):
-            self.b = tf.Variable(tf.zeros([self.nb_classes], name="bias"))
+            self.b = tf.get_variable(
+                shape=[self.nb_classes],
+                initializer=tf.truncated_normal_initializer(stddev=0.01),
+                name='bias'
+            )
+            # self.b = tf.Variable(tf.zeros([self.nb_classes], name="bias"))
         return
 
     def inference(self, X, F, X_len, reuse=None):
