@@ -31,26 +31,16 @@ def batch_index(length, batch_size, n_iter=100, shuffle=True):
 class linear_chain_CRF():
 
     def __init__(self, feat_size, nb_classes, time_steps,
-                 batch_size=None, templates=None, l2_reg=0.):
-        # self.nb_words = nb_words
-        # self.emb_dim = emb_dim
+                 batch_size=None, templates=1, l2_reg=0.):
         self.feat_size = feat_size
         self.nb_classes = nb_classes
         self.batch_size = batch_size
         self.time_steps = time_steps
         self.l2_reg = l2_reg
-        # self.fine_tuning = fine_tuning
-
-        # if self.fine_tuning:
-        #     self.emb_matrix = tf.Variable(
-        #         emb_matrix, dtype=tf.float32, name="embeddings")
-        # else:
-        #     self.emb_matrix = tf.constant(
-        #         emb_matrix, dtype=tf.float32, name="embeddings")
 
         with tf.name_scope('inputs'):
             self.X = tf.placeholder(
-                tf.int32, shape=[None, self.time_steps, len(templates)],
+                tf.int32, shape=[None, self.time_steps, templates],
                 name='X_placeholder')
             self.Y = tf.placeholder(
                 tf.int32, shape=[None, self.time_steps],
@@ -310,7 +300,7 @@ class embedding_CRF(linear_chain_CRF):
 
     def __init__(self, nb_words, emb_dim, emb_matrix, feat_size,
                  nb_classes, time_steps, fine_tuning=False,
-                 batch_size=None, templates=None, l2_reg=0.):
+                 batch_size=None, templates=1, l2_reg=0.):
         self.nb_words = nb_words
         self.emb_dim = emb_dim
         self.feat_size = feat_size
@@ -329,7 +319,7 @@ class embedding_CRF(linear_chain_CRF):
 
         with tf.name_scope('inputs'):
             self.F = tf.placeholder(
-                tf.int32, shape=[None, self.time_steps, len(templates)],
+                tf.int32, shape=[None, self.time_steps, templates],
                 name='F_placeholder')
             self.X = tf.placeholder(
                 tf.int32, shape=[None, self.time_steps],

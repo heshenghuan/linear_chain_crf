@@ -7,13 +7,12 @@ Created on Sat Jul 08 2017
 http://github.com/heshenghuan
 """
 
-import jieba
 import codecs as cs
 import numpy as np
 import tensorflow as tf
 from collections import defaultdict
 from parameters import OOV, MAX_LEN
-from features import fields, pmi_fields, templates, pmi_templates
+from features import Template
 from features import feature_extractor
 
 # keras API
@@ -39,9 +38,9 @@ def create_dicts(train, valid, test, threshold, mode, anno=None):
     def get_label(stream, pos):
         return [[item[pos] for item in sentc] for sentc in stream]
 
-    words = (get_label(train, 'r')  # 训练集字符集合
-             + ([] if valid is None else get_label(valid, 'r'))  # 验证集字符集合
-             + ([] if test is None else get_label(test, 'r')))  # 测试集字符集合
+    words = (get_label(train, 'w')  # 训练集字符集合
+             + ([] if valid is None else get_label(valid, 'w'))  # 验证集字符集合
+             + ([] if test is None else get_label(test, 'w')))  # 测试集字符集合
     labels = (get_label(train, 'y')
               + ([] if valid is None else get_label(valid, 'y'))
               + ([] if test is None else get_label(test, 'y')))
@@ -84,66 +83,14 @@ def create_dicts(train, valid, test, threshold, mode, anno=None):
     return features_to_id, word_to_id, label_to_id
 
 
-def convdata_helper(sentc, fields, repre, anno):
-    """
-    According to the parameter 'repre', convert sentc to a given format.
-    If: 'repre' == 'char', add key-value 'r' = char
-        'repre' == 'charpos', add key-value 'r' = char+pos
-    The 'pos' is the position of char in a Chinese word after segmentation.
-
-    1.repre == char: sentc = [{'w': x, 'r': c, 'y': y, 'F': []} * n]
-    2.repre == charpos: sentc = [{'w': x, 'r': c+pos, 'y': y, 'F': []} * n]
-    """
-    if repre == 'char' and anno is None:
-        for item in sentc:
-            item['r'] = item['w']
-    else:
-        sent = ''.join(item['w'] for item in sentc)
-        token_tag_list = jieba.cut(sent)
-        count = 0
-        for token_str in token_tag_list:
-            for i, char in enumerate(token_str):
-                if repre == 'charpos':
-                    r = char + str(i)
-                else:
-                    raise ValueError(
-                        'representation cannot take value %s!\n' % repre)
-                if anno is None:
-                    # fields = (char, r, labels[count])
-                    sentc[count]['r'] = r
-                else:
-                    raise ValueError(
-                        'annotation cannot take value %s!\n' % anno)
-                count += 1
-    return sentc
-
-
-def apply_feature_templates(sntc):
+def apply_feature_templates(sntc, template=None):
     """
     Apply feature templates, generate feats for each sentence.
     """
-    if len(sntc[0]) == 4:
-        # {'w': x, 'r':r, 'y': y, 'F': []}
-        fields_template = 'w r y F'
-    elif len(sntc[0]) == 5:
-        # {'w': x, 'r': r, 'p': p, 'y': y, 'F': []}
-        fields_template = 'w r p y F'
-    # elif len(sntc[0]) == 5:
-    #     fields_template = 'w r s p y'
-    else:
-        raise ValueError('Unknow representation!\n')
-    if fields_template == 'w r y F':
-        features = feature_extractor(
-            # readiter(sntc, fields_template.split(' ')),
-            sntc,
-            templates=templates)
-    elif fields_template == 'w r p y F':
-        features = feature_extractor(
-            # readiter(sntc, fields_template.split(' ')),
-            sntc,
-            templates=pmi_templates)
-    else:
-        raise ValueError('Unknow input fields!\n')
+    if template is None or type(template) != Template:
+        raise TypeError('Except a valid Template object but got a \'None\'.')
+    if template.valid:
+        features = feature_extractor(sntc, templates=template.template)
     return features
 
 
@@ -205,7 +152,7 @@ def conv_corpus(sentcs, featvs, labels, word2idx, feat2idx, label2idx, max_len=M
     return new_sentcs, new_featvs, new_labels
 
 
-def read_corpus(fn, mode, anno=None, has_label=True, fields=fields):
+def read_corpus(fn, mode, anno=None, template=None):
     """
     Reads corpus file, then returns the list of sentences and labelSeq.
 
@@ -221,27 +168,26 @@ def read_corpus(fn, mode, anno=None, has_label=True, fields=fields):
         max_len: the maximum length of sentences
     """
     if fn is None:
-        return None
+        raise ValueError("Expected a valid file path.")
+    assert type(template) == Template
+    fields = template.fields
     with cs.open(fn, encoding='utf-8') as src:
         stream = src.read().strip().split('\n\n')
         corpus = []
         max_len = MAX_LEN
         for line in stream:
-            line = line.strip().split('\n')
-            max_len = max(max_len, len(line))
+            tokens = line.strip().split('\n')
+            max_len = max(max_len, len(tokens))
             sentc = []
-            for e in line:
-                token = e.split()
-                assert len(token) == len(fields)
-                # depends on fields, item could be like:
-                # 1. {'w': x, 'y': y, 'F': []}
-                # 2. {'w': x, 'p': p, 'y':y, 'F': []}
+            for tk in tokens:
+                column = tk.split()
+                assert len(column) == len(fields)
                 item = {'F': []}  # F field reserved for feats
                 for i in range(len(fields)):
-                    item[fields[i]] = token[i]
+                    item[fields[i]] = column[i]
                 sentc.append(item)
-            X = convdata_helper(sentc, fields, mode, anno)
-            features = apply_feature_templates(X)
+            # X = convdata_helper(sentc, fields, mode, anno)
+            features = apply_feature_templates(sentc, template)
             corpus.append(features)
         length = [len(sent) for sent in corpus]
         length = np.asarray(length, dtype=np.int32)
@@ -263,7 +209,7 @@ def unfold_corpus(corpus):
     labels = []
     featvs = []
     for sent in corpus:
-        sentcs.append([item['r'] for item in sent])
+        sentcs.append([item['w'] for item in sent])
         labels.append([item['y'] for item in sent])
         featvs.append([item['F'] for item in sent])
 
@@ -271,7 +217,7 @@ def unfold_corpus(corpus):
 
 
 def pretreatment(train_fn, valid_fn, test_fn, threshold=0, emb_type='char',
-                 anno=None, test_label=True, fields=fields):
+                 anno=None, template=None):
     """
     """
     print "###################################################################"
@@ -279,11 +225,11 @@ def pretreatment(train_fn, valid_fn, test_fn, threshold=0, emb_type='char',
     print "###################################################################"
     # Step 1: Read the train, valid and test file
     train_corpus, train_lens, train_max_len = read_corpus(
-        train_fn, emb_type, anno, test_label, fields=fields)
+        train_fn, emb_type, anno, template=template)
     valid_corpus, valid_lens, valid_max_len = read_corpus(
-        valid_fn, emb_type, anno, test_label, fields=fields)
+        valid_fn, emb_type, anno, template=template)
     test_corpus, test_lens, test_max_len = read_corpus(
-        test_fn, emb_type, anno, test_label, fields=fields)
+        test_fn, emb_type, anno, template=template)
     # Get maximum length of sentence
     max_len = max(train_max_len, valid_max_len, test_max_len)
     # Step 2: Generate dicts from corpus

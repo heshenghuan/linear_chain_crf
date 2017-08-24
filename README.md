@@ -4,16 +4,15 @@ This project is a HMM-like linear-chain CRF implementation, using Tensorflow API
 
 As long as the format of given data is correct, this project can applied to solve some sequence labelling program like 'Chinese Word Segmentation', 'NER' and 'POS-tagging'.
 
-As a traditional linear-chain CRF, the feature template used in this project has been given in file [src/features.py](./src./features.py). Of course, you can customize a feature template.
+As a traditional linear-chain CRF, the feature template used in this project has been given in file [templates.py](./templates.py). Of course, you can customize a feature template.
 
 ## Dependecies
 
 Because this project used Tensorflow API, it requires installation of Tensorflow and some other python modules:
 
-1. Tensorflow ( >= r1.1)
-2. jieba (a python CWS toolkit)
+- Tensorflow ( >= r1.1)
 
-Both of them can be easily installed by `pip`.
+Both of them can be easily installed by `pip`. 
 
 ## Data Format
 
@@ -40,6 +39,44 @@ Here's an example of such a file: (data for Chinese NER)
 持	O
 ...
 ```
+
+## Featrue template
+
+In file `template` specificated the feature template which used in context-based feature extraction. The second line `fields` indicates the field name for each column of a token. And the `templates` described how to extract features.
+
+For example, the basic template is:
+
+```
+# Fields(column), w,y&F are reserved names
+w y
+# templates.
+w:-2
+w:-1
+w: 0
+w: 1
+w: 2
+w:-2, w:-1
+w:-1, w: 0
+w: 0, w: 1
+w: 1, w: 2
+w:-1, w: 1
+```
+
+it means, each token will only has 2 columns data, 'w' and 'y'. Field `y` should always be at the last column.
+
+> Note that `w` `y` & `F` fields are reserved, because program used them to represent word, label and word's features.
+>
+> Each token will become a dict type data like '{'w': '李', 'y': 'B-PER.NAM', 'F': ['w[-2]=动', 'w[-1]=了', ...]}'
+
+The above `templates` describes a classical context feature template:
+
+- C(n) n=-2,-1,0,1,2
+- C(n)C(n+1) n=-2,-1,0,-1
+- C(-1)C(1)
+
+'C(n)' is the value of token['w'] at relative position n.
+
+If your token has more than 2 columns, you may need change the fields and template depends on how you want to do extraction.
 
 ## Embeddings
 
@@ -202,6 +239,8 @@ optional arguments:
 
 ## History
 
+- **2017-08-24 ver 0.1.7**
+  - New feature template method, support template from file.
 - **2017-07-25 ver 0.1.6**
   - Add viterbi decode method, as a repalcement of accuracy method to decode.
   - Modified accuracy function, it only do accuracy calculation.

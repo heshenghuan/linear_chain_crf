@@ -13,7 +13,7 @@ import codecs as cs
 import tensorflow as tf
 from model import embedding_CRF
 from src.parameters import MAX_LEN
-from src.features import templates, pmi_templates, fields, pmi_fields
+from src.features import Template
 from src.utils import eval_ner, read_emb_from_file
 from src.parameters import MODEL_DIR, DATA_DIR, OUTPUT_DIR, LOG_DIR, EMB_DIR
 from src.pretreatment import pretreatment, unfold_corpus, conv_corpus
@@ -57,7 +57,7 @@ tf.app.flags.DEFINE_integer("display_step", 1, "number of test display step")
 tf.app.flags.DEFINE_float("l2_reg", 0.0001, "L2 regularization weight")
 tf.app.flags.DEFINE_boolean(
     'log', True, 'Whether to record the TensorBoard log.')
-tf.app.flags.DEFINE_string("format", "wy", "input data format('wy' or 'wpy')")
+tf.app.flags.DEFINE_string("template", r"template", "Feature templates")
 
 
 def convert_id_to_word(corpus, idx2label):
@@ -133,15 +133,7 @@ def main(_):
     print "Feature threshold:", FLAGS.feat_thresh
 
     # Choose fields templates & features templates
-    if FLAGS.format == 'wy':
-        FLAGS.fields = fields
-        FLAGS.templates = templates
-    elif FLAGS.format == 'wpy':
-        FLAGS.fields = pmi_fields
-        FLAGS.templates = pmi_templates
-    else:
-        raise ValueError('Unknow input fields!\n')
-        return
+    template = Template(FLAGS.template)
     # pretreatment process: read, split and create vocabularies
     train_set, valid_set, test_set, dicts, max_len = pretreatment(
         FLAGS.train_data, FLAGS.valid_data, FLAGS.test_data,
@@ -180,7 +172,7 @@ def main(_):
 
     del train_corpus
     del valid_corpus
-    # del test_corpus
+    del test_corpus
 
     # neural network's output_dim
     nb_classes = len(label2idx) + 1
@@ -203,7 +195,7 @@ def main(_):
     idx2label = dict((k, v) for v, k in FLAGS.label2idx.iteritems())
     # idx2words = dict((k, v) for v, k in FLAGS.words2idx.iteritems())
 
-    # convert corpus from string to it's own index seq with post padding 0
+    # convert corpus from string seq to numeric id seq with post padding 0
     print "Preparing training, validate and testing data."
     train_X, train_F, train_Y = conv_corpus(
         train_sentcs, train_featvs, train_labels,
@@ -237,7 +229,7 @@ def main(_):
     model = embedding_CRF(
         FLAGS.nb_words, FLAGS.emb_dim, emb_mat, FLAGS.feat_size,
         FLAGS.nb_classes, FLAGS.max_len, FLAGS.fine_tuning,
-        FLAGS.batch_size, FLAGS.templates, FLAGS.l2_reg)
+        FLAGS.batch_size, len(template.template), FLAGS.l2_reg)
 
     pred_test, test_loss, test_acc = model.run(
         train_X, train_F, train_Y, train_lens,
@@ -251,9 +243,9 @@ def main(_):
     if FLAGS.eval_test:
         res_test, pred_test_label = evaluate(pred_test_label, test_labels)
         print "Test F1: %f, P: %f, R: %f" % (res_test['f1'], res_test['p'], res_test['r'])
-    original_text = [[item['w'] for item in sent] for sent in test_corpus]
+    # original_text = [[item['w'] for item in sent] for sent in test_corpus]
     write_prediction(FLAGS.output_dir + 'prediction.utf8',
-                     original_text, pred_test_label)
+                     test_sentcs, pred_test_label)
 
 
 if __name__ == "__main__":

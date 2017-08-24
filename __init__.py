@@ -10,8 +10,8 @@ http://github.com/heshenghuan
 from src import utils, pretreatment, parameters, features
 
 __all__ = [
-    'model', 'crf_tagger', 'utils',
+    'model', 'crf_tagger', 'emb_crf_tagger', 'utils',
     'pretreatment', 'parameters', 'features'
 ]
 
-__version__ = '0.1.6'
+__version__ = '0.1.7'
