@@ -86,7 +86,7 @@ This program supports word/char embeddings input. When running this program, you
 
 ### Environment settings
 
-In **src/parameters.py** file, there are some environment settings like 'output dir':
+In **env_settings.py** file, there are some environment settings like 'output dir':
 
 ```python
 # Those are some IO files' dirs
@@ -117,12 +117,12 @@ usage: crf_tagger.py [-h] [--train_data TRAIN_DATA] [--test_data TEST_DATA]
                      [--valid_data VALID_DATA] [--log_dir LOG_DIR]
                      [--model_dir MODEL_DIR] [--restore_model RESTORE_MODEL]
                      [--output_dir OUTPUT_DIR] [--feat_thresh FEAT_THRESH]
-                     [--lr LR] [--eval_test [EVAL_TEST]] [--noeval_test]
-                     [--test_anno [TEST_ANNO]] [--notest_anno]
+                     [--only_test [ONLY_TEST]] [--noonly_test] [--lr LR]
+                     [--eval_test [EVAL_TEST]] [--noeval_test]
                      [--max_len MAX_LEN] [--nb_classes NB_CLASSES]
                      [--batch_size BATCH_SIZE] [--train_steps TRAIN_STEPS]
                      [--display_step DISPLAY_STEP] [--l2_reg L2_REG]
-                     [--log [LOG]] [--nolog] [--format FORMAT]
+                     [--log [LOG]] [--nolog] [--template TEMPLATE]
 
 optional arguments:
   -h, --help            show this help message and exit
@@ -141,13 +141,13 @@ optional arguments:
                         Output dir
   --feat_thresh FEAT_THRESH
                         Only keep feats which occurs more than 'thresh' times.
+  --only_test [ONLY_TEST]
+                        Only do the test
+  --noonly_test
   --lr LR               learning rate
   --eval_test [EVAL_TEST]
                         Whether evaluate the test data.
   --noeval_test
-  --test_anno [TEST_ANNO]
-                        Whether the test data is labeled.
-  --notest_anno
   --max_len MAX_LEN     max num of tokens per query
   --nb_classes NB_CLASSES
                         Tagset size
@@ -160,7 +160,7 @@ optional arguments:
   --l2_reg L2_REG       L2 regularization weight
   --log [LOG]           Whether to record the TensorBoard log.
   --nolog
-  --format FORMAT       input data format('wy' or 'wpy')
+  --template TEMPLATE   Feature templates
 ```
 
 #### 2. Using embedding-enhanced CRF tagger
@@ -178,17 +178,16 @@ $ python emb_crf_tagger.py -h
 usage: emb_crf_tagger.py [-h] [--train_data TRAIN_DATA]
                          [--test_data TEST_DATA] [--valid_data VALID_DATA]
                          [--log_dir LOG_DIR] [--model_dir MODEL_DIR]
-                         [--restore_model RESTORE_MODEL] [--emb_type EMB_TYPE]
-                         [--emb_file EMB_FILE] [--emb_dim EMB_DIM]
-                         [--output_dir OUTPUT_DIR] [--feat_thresh FEAT_THRESH]
-                         [--lr LR] [--fine_tuning [FINE_TUNING]]
-                         [--nofine_tuning] [--eval_test [EVAL_TEST]]
-                         [--noeval_test] [--test_anno [TEST_ANNO]]
-                         [--notest_anno] [--max_len MAX_LEN]
-                         [--nb_classes NB_CLASSES] [--batch_size BATCH_SIZE]
-                         [--train_steps TRAIN_STEPS]
+                         [--restore_model RESTORE_MODEL] [--emb_file EMB_FILE]
+                         [--emb_dim EMB_DIM] [--output_dir OUTPUT_DIR]
+                         [--feat_thresh FEAT_THRESH] [--lr LR]
+                         [--fine_tuning [FINE_TUNING]] [--nofine_tuning]
+                         [--eval_test [EVAL_TEST]] [--noeval_test]
+                         [--test_anno [TEST_ANNO]] [--notest_anno]
+                         [--max_len MAX_LEN] [--nb_classes NB_CLASSES]
+                         [--batch_size BATCH_SIZE] [--train_steps TRAIN_STEPS]
                          [--display_step DISPLAY_STEP] [--l2_reg L2_REG]
-                         [--log [LOG]] [--nolog] [--format FORMAT]
+                         [--log [LOG]] [--nolog] [--template TEMPLATE]
 
 optional arguments:
   -h, --help            show this help message and exit
@@ -203,7 +202,6 @@ optional arguments:
                         Models dir
   --restore_model RESTORE_MODEL
                         Path of the model to restored
-  --emb_type EMB_TYPE   Embeddings type: char/charpos
   --emb_file EMB_FILE   Embeddings file
   --emb_dim EMB_DIM     embedding size
   --output_dir OUTPUT_DIR
@@ -232,13 +230,17 @@ optional arguments:
   --l2_reg L2_REG       L2 regularization weight
   --log [LOG]           Whether to record the TensorBoard log.
   --nolog
-  --format FORMAT       input data format('wy' or 'wpy')
+  --template TEMPLATE   Feature templates
 ```
 
 
 
 ## History
 
+- **2017-08-26 ver 0.1.8**
+  - Enviroment settings file.
+  - Removed some args which not use any more.
+  - `src`: Neural text process lib 0.1.0
 - **2017-08-24 ver 0.1.7**
   - New feature template method, support template from file.
 - **2017-07-25 ver 0.1.6**
