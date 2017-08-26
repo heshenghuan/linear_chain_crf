@@ -15,8 +15,8 @@ from model import linear_chain_CRF
 from src.parameters import MAX_LEN
 from src.features import Template
 from src.utils import eval_ner
-from src.parameters import MODEL_DIR, DATA_DIR, OUTPUT_DIR, LOG_DIR
 from src.pretreatment import pretreatment, unfold_corpus, conv_corpus
+from env_settings import MODEL_DIR, DATA_DIR, OUTPUT_DIR, LOG_DIR
 
 
 FLAGS = tf.app.flags.FLAGS
@@ -131,7 +131,7 @@ def main(_):
     # pretreatment process: read, split and create vocabularies
     train_set, valid_set, test_set, dicts, max_len = pretreatment(
         FLAGS.train_data, FLAGS.valid_data, FLAGS.test_data,
-        threshold=FLAGS.feat_thresh, emb_type='char', template=template)
+        threshold=FLAGS.feat_thresh, template=template)
 
     # Reset the maximum sentence's length
     # max_len = max(MAX_LEN, max_len)
