@@ -16,20 +16,26 @@ class Template(object):
     """
     Context-based feature template.
     """
-    def __init__(self, fn=None, sep=', '):
+    def __init__(self, fn=None, sep=', ', suffix=True):
         """
         Returns a templates instance from file.
+
+        fn: templates file path
+        sep: separator
+        suffix: Enable or disable feature suffix which used to identify
+                different templates
         """
         self._fields = None
         self._template = None
+        self._suffix = None
         self._valid = False
 
         if fn is None:
             raise ValueError('Initializer got a \'None\' instead a file path.')
         else:
-            self.build(fn, sep)
+            self.build(fn, sep, suffix)
 
-    def build(self, fn, sep):
+    def build(self, fn, sep, suffix):
         self._fields = []
         self._template = []
         with cs.open(fn, 'r', 'utf8') as src:
@@ -48,14 +54,22 @@ class Template(object):
                         raise ValueError(e)
                     temp.append((field, int(offset)))
                 self._template.append(temp)
+            self._suffix = suffix
             self._valid = True
+
+    def __str__(self):
+        string = str(self.__class__) + '\n'
+        string += "Fields(%s)\n" % (', '.join("'%s'" % f for f in self.fields))
+        string += '' if self._suffix else "Suffix disabled\n" + 'Templates:\n'
+        string += ",\n".join(str(t) for t in self._template)
+        return string
 
     @property
     def template(self):
         return self._template
 
     @template.setter
-    def template(self, *argv, **argw):
+    def template(self, *args, **kwargs):
         pass
 
     @property
@@ -63,12 +77,16 @@ class Template(object):
         return self._fields
 
     @fields.setter
-    def fields(self, *argv, **argw):
+    def fields(self, *args, **kwargs):
         pass
 
     @property
     def valid(self):
         return self._valid
+
+    @property
+    def suffix(self):
+        return self._suffix
 
 
 # Field names of the input data.
@@ -117,7 +135,7 @@ def readiter(data, names):
     return X
 
 
-def apply_templates(X, templates=None):
+def apply_templates(X, templates=None, suffix=True):
     """
     Generate features for an item sequence by applying feature templates.
     A feature template consists of a tuple of (name, offset) pairs,
@@ -146,7 +164,10 @@ def apply_templates(X, templates=None):
                     values.append(END)
                 else:
                     values.append(X[p][field])
-            X[t]['F'].append('%s=%s' % (name, '|'.join(values)))
+            if suffix:
+                X[t]['F'].append('%s=%s' % (name, '|'.join(values)))
+            else:
+                X[t]['F'].append('%s' % ('|'.join(values)))
     return X
 
 
@@ -191,4 +212,4 @@ def feature_extractor(X, templates=None):
     # Apply attribute templates to obtain features (in fact, attributes)
     if templates is None:
         raise TypeError("templates should be iterable type not NoneType")
-    return apply_templates(X, templates)
+    return apply_templates(X, templates.template, templates.suffix)

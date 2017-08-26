@@ -11,3 +11,5 @@ __all__ = [
     "features", "parameters",
     "utils", "pretreatment"
 ]
+
+__version__ = 'NeuralTextProcess lib 0.1.0'

@@ -22,10 +22,3 @@ LogP_ZERO = float('-inf')
 LogP_INF = float('inf')
 LogP_ONE = 0.0
 FloatX = 'float32'
-
-BASE_DIR = r'/Users/heshenghuan/Projects/linear_chainCRF/'
-MODEL_DIR = BASE_DIR + r'models/'
-DATA_DIR = BASE_DIR + r'data/'
-EMB_DIR = BASE_DIR + r'embeddings/'
-OUTPUT_DIR = BASE_DIR + r'export/'
-LOG_DIR = BASE_DIR + r'Summary/'

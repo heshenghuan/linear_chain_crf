@@ -19,7 +19,7 @@ from features import feature_extractor
 pad_sequences = tf.contrib.keras.preprocessing.sequence.pad_sequences
 
 
-def create_dicts(train, valid, test, threshold, mode, anno=None):
+def create_dicts(train, valid, test, threshold):
     """
     Returns three dicts, which are feature dictionary, word dictionary
     and label dictionary.
@@ -90,7 +90,7 @@ def apply_feature_templates(sntc, template=None):
     if template is None or type(template) != Template:
         raise TypeError('Except a valid Template object but got a \'None\'.')
     if template.valid:
-        features = feature_extractor(sntc, templates=template.template)
+        features = feature_extractor(sntc, templates=template)
     return features
 
 
@@ -152,14 +152,12 @@ def conv_corpus(sentcs, featvs, labels, word2idx, feat2idx, label2idx, max_len=M
     return new_sentcs, new_featvs, new_labels
 
 
-def read_corpus(fn, mode, anno=None, template=None):
+def read_corpus(fn, template=None):
     """
     Reads corpus file, then returns the list of sentences and labelSeq.
 
     # Parameters
-        mode: char/charpos
-        anno: has to be None
-        fields: the input fields
+        template: feature templates instance
 
     # Returns
         corpus: the list of corpus' sentences, each sentence is a list of
@@ -186,7 +184,6 @@ def read_corpus(fn, mode, anno=None, template=None):
                 for i in range(len(fields)):
                     item[fields[i]] = column[i]
                 sentc.append(item)
-            # X = convdata_helper(sentc, fields, mode, anno)
             features = apply_feature_templates(sentc, template)
             corpus.append(features)
         length = [len(sent) for sent in corpus]
@@ -216,8 +213,7 @@ def unfold_corpus(corpus):
     return sentcs, featvs, labels
 
 
-def pretreatment(train_fn, valid_fn, test_fn, threshold=0, emb_type='char',
-                 anno=None, template=None):
+def pretreatment(train_fn, valid_fn, test_fn, threshold=0, template=None):
     """
     """
     print "###################################################################"
@@ -225,16 +221,16 @@ def pretreatment(train_fn, valid_fn, test_fn, threshold=0, emb_type='char',
     print "###################################################################"
     # Step 1: Read the train, valid and test file
     train_corpus, train_lens, train_max_len = read_corpus(
-        train_fn, emb_type, anno, template=template)
+        train_fn, template=template)
     valid_corpus, valid_lens, valid_max_len = read_corpus(
-        valid_fn, emb_type, anno, template=template)
+        valid_fn, template=template)
     test_corpus, test_lens, test_max_len = read_corpus(
-        test_fn, emb_type, anno, template=template)
+        test_fn, template=template)
     # Get maximum length of sentence
     max_len = max(train_max_len, valid_max_len, test_max_len)
     # Step 2: Generate dicts from corpus
     dict_feat, dict_lex, dict_y = create_dicts(
-        train_corpus, valid_corpus, test_corpus, threshold, emb_type, anno)
+        train_corpus, valid_corpus, test_corpus, threshold)
     dic = {'words2idx': dict_lex, 'label2idx': dict_y, 'feats2idx': dict_feat}
     train = (train_corpus, train_lens)
     valid = (valid_corpus, valid_lens)
