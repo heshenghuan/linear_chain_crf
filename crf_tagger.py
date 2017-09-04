@@ -168,8 +168,8 @@ def main(_):
     del test_corpus
 
     # neural network's output_dim
-    nb_classes = len(label2idx) + 1
-    FLAGS.nb_classes = max(nb_classes, FLAGS.nb_classes)
+    nb_classes = len(label2idx)
+    FLAGS.nb_classes = nb_classes
 
     idx2label = dict((k, v) for v, k in FLAGS.label2idx.iteritems())
     # idx2words = dict((k, v) for v, k in FLAGS.words2idx.iteritems())

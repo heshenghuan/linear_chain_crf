@@ -174,8 +174,8 @@ def main(_):
     del test_corpus
 
     # neural network's output_dim
-    nb_classes = len(label2idx) + 1
-    FLAGS.nb_classes = max(nb_classes, FLAGS.nb_classes)
+    nb_classes = len(label2idx)
+    FLAGS.nb_classes = nb_classes
 
     # Embedding layer's input_dim
     nb_words = len(words2idx)
