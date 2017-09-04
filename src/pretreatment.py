@@ -53,8 +53,8 @@ def create_dicts(train, valid, test, threshold):
         for feats in sentc_feats:  # ftv一句中某个字的特征集合
             for feat in feats:  # ft这句话中某个字的按模板生成的某个特征
                 feature_to_freq[feat] += 1
-    features_to_id = {OOV: 1}
-    cur_idx = 2
+    features_to_id = {OOV: 0}
+    cur_idx = 1
     for sentc_feats in featvs:
         for feats in sentc_feats:
             for ft in feats:
@@ -74,7 +74,7 @@ def create_dicts(train, valid, test, threshold):
                 cur_idx += 1
 
     label_to_id = {}
-    cur_idx = 1
+    cur_idx = 0
     for sent_lbs in labels:
         for l in sent_lbs:
             if l not in label_to_id:
@@ -105,7 +105,7 @@ def conv_feats(F, feat2idx, max_len=MAX_LEN):
     sent_len = len(F)
     feats = []
     for feat in F:
-        feats.append([feat2idx.get(f, 1) for f in feat])
+        feats.append([feat2idx.get(f, 0) for f in feat])
     for i in xrange(max_len - sent_len):
         feats.append([0] * feat_num)
     return feats
