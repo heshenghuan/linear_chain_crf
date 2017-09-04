@@ -237,6 +237,9 @@ optional arguments:
 
 ## History
 
+- **2017-09-04 ver 0.1.9**
+  - Calculate nb_classes from file.
+  - Update Neural text process lib 0.1.1
 - **2017-08-26 ver 0.1.8**
   - Enviroment settings file.
   - Removed some args which not use any more.
