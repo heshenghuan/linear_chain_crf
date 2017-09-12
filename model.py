@@ -210,18 +210,20 @@ class linear_chain_CRF():
                     Summary_dir + '/valid')
 
         with tf.name_scope('saveModel'):
-            localtime = time.strftime("%X %Y-%m-%d", time.localtime())
-            saver = tf.train.Saver(write_version=tf.train.SaverDef.V2)
+            localtime = time.strftime("%X-%Y-%m-%d", time.localtime())
+            saver = tf.train.Saver()
             save_dir = FLAGS.model_dir + localtime + '/'
             if not os.path.exists(save_dir):
                 os.makedirs(save_dir)
 
         with tf.Session() as sess:
-            sess.run(tf.initialize_all_variables())
             max_acc, bestIter = 0., 0
 
             if self.training_iter == 0:
                 saver.restore(sess, FLAGS.restore_model)
+                print "[+] Model restored from %s" % FLAGS.restore_model
+            else:
+                sess.run(tf.initialize_all_variables())
 
             for epoch in xrange(self.training_iter):
 
@@ -242,7 +244,8 @@ class linear_chain_CRF():
                             train_loss: loss, train_acc: acc})
                         train_summary_writer.add_summary(summary, step)
                     print 'Iter {}: mini-batch loss={:.6f}, acc={:.6f}, mloss={:.6f}'.format(step, loss, acc, m_loss)
-                saver.save(sess, save_dir, global_step=step)
+                save_path = saver.save(sess, save_dir, global_step=step)
+                print "[+] Model saved in file: %s" % save_path
 
                 if epoch % self.display_step == 0:
                     rd, loss, correct, total, m_loss = 0, 0., 0, 0, 0.
