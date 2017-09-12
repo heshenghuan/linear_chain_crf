@@ -74,7 +74,7 @@ def create_dicts(train, valid, test, threshold):
                 cur_idx += 1
 
     label_to_id = {}
-    cur_idx = 0
+    cur_idx = 1
     for sent_lbs in labels:
         for l in sent_lbs:
             if l not in label_to_id:
@@ -95,8 +95,8 @@ def apply_feature_templates(sntc, template=None):
 
 
 def conv_sentc(X, Y, word2idx, label2idx):
-    sentc = [word2idx.get(w) for w in X]
-    label = [label2idx.get(l) for l in Y]
+    sentc = [word2idx.get(w, 0) for w in X]
+    label = [label2idx.get(l, 0) for l in Y]
     return sentc, label
 
 
