@@ -237,6 +237,10 @@ optional arguments:
 
 ## History
 
+- **2017-09-12 ver 0.1.10**
+  - Expend nb_classes.
+  - Update Neural text process lib 0.1.2
+  - crf tagger & emb crf tagger now support only test.
 - **2017-09-04 ver 0.1.9**
   - Calculate nb_classes from file.
   - Update Neural text process lib 0.1.1
