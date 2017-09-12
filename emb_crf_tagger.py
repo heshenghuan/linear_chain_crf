@@ -114,15 +114,15 @@ def test_evaluate(sess, unary_score, test_sequence_length, transMatrix, inp,
 
 
 def save_dicts(path, feats2idx, words2idx, label2idx):
-    with cs.open(path + 'FEATS', 'w') as out:
+    with cs.open(path + 'FEATS', 'w', 'utf-8') as out:
         for k, v in feats2idx.iteritems():
             out.write("%s %d\n" % (k, v))
 
-    with cs.open(path + 'WORDS', 'w') as out:
+    with cs.open(path + 'WORDS', 'w', 'utf-8') as out:
         for k, v in words2idx.iteritems():
             out.write("%s %d\n" % (k, v))
 
-    with cs.open(path + 'LABEL', 'w') as out:
+    with cs.open(path + 'LABEL', 'w', 'utf-8') as out:
         for k, v in label2idx.iteritems():
             out.write("%s %d\n" % (k, v))
 
@@ -131,19 +131,19 @@ def load_dicts(path):
     feats2idx = {}
     words2idx = {}
     label2idx = {}
-    with cs.open(path + 'FEATS', 'r') as src:
+    with cs.open(path + 'FEATS', 'r', 'utf-8') as src:
         items = src.read().strip().split('\n')
         for item in items:
             k, v = item.strip().split()
             feats2idx[k] = int(v)
 
-    with cs.open(path + 'WORDS', 'r') as src:
+    with cs.open(path + 'WORDS', 'r', 'utf-8') as src:
         items = src.read().strip().split('\n')
         for item in items:
             k, v = item.strip().split()
             words2idx[k] = int(v)
 
-    with cs.open(path + 'LABEL', 'r') as src:
+    with cs.open(path + 'LABEL', 'r', 'utf-8') as src:
         items = src.read().strip().split('\n')
         for item in items:
             k, v = item.strip().split()
