@@ -203,6 +203,7 @@ def main(_):
     random.seed(1337)
 
     if FLAGS.only_test or FLAGS.train_steps == 0:
+        FLAGS.train_steps = 0
         test(FLAGS)
         return
 
