@@ -99,6 +99,8 @@ OUTPUT_DIR = BASE_DIR + r'export/'
 LOG_DIR = BASE_DIR + r'Summary/'
 ```
 
+If your don't have those dirs in your project dir, just run `python env_settings.py`, and they will be created automatically.
+
 ### Training 
 
 #### 1. Using pure CRF tagger
@@ -180,10 +182,10 @@ usage: emb_crf_tagger.py [-h] [--train_data TRAIN_DATA]
                          [--log_dir LOG_DIR] [--model_dir MODEL_DIR]
                          [--restore_model RESTORE_MODEL] [--emb_file EMB_FILE]
                          [--emb_dim EMB_DIM] [--output_dir OUTPUT_DIR]
-                         [--feat_thresh FEAT_THRESH] [--lr LR]
+                         [--feat_thresh FEAT_THRESH] [--only_test [ONLY_TEST]]
+                         [--noonly_test] [--lr LR]
                          [--fine_tuning [FINE_TUNING]] [--nofine_tuning]
                          [--eval_test [EVAL_TEST]] [--noeval_test]
-                         [--test_anno [TEST_ANNO]] [--notest_anno]
                          [--max_len MAX_LEN] [--nb_classes NB_CLASSES]
                          [--batch_size BATCH_SIZE] [--train_steps TRAIN_STEPS]
                          [--display_step DISPLAY_STEP] [--l2_reg L2_REG]
@@ -208,6 +210,9 @@ optional arguments:
                         Output dir
   --feat_thresh FEAT_THRESH
                         Only keep feats which occurs more than 'thresh' times.
+  --only_test [ONLY_TEST]
+                        Only do the test
+  --noonly_test
   --lr LR               learning rate
   --fine_tuning [FINE_TUNING]
                         Whether fine-tuning the embeddings
@@ -215,9 +220,6 @@ optional arguments:
   --eval_test [EVAL_TEST]
                         Whether evaluate the test data.
   --noeval_test
-  --test_anno [TEST_ANNO]
-                        Whether the test data is labeled.
-  --notest_anno
   --max_len MAX_LEN     max num of tokens per query
   --nb_classes NB_CLASSES
                         Tagset size
@@ -237,10 +239,13 @@ optional arguments:
 
 ## History
 
+- **2017-09-12 ver 0.1.11**
+  - Run `python env_settings.py` to create default dirs automatically.
 - **2017-09-12 ver 0.1.10**
   - Expend nb_classes.
   - Update Neural text process lib 0.1.2
   - crf tagger & emb crf tagger now support only test.
+  - Tagger will save feature, word & label maps to output_dir as text file.
 - **2017-09-04 ver 0.1.9**
   - Calculate nb_classes from file.
   - Update Neural text process lib 0.1.1
