@@ -15,7 +15,7 @@ from model import embedding_CRF
 from src.parameters import MAX_LEN
 from src.features import Template
 from src.utils import eval_ner, read_emb_from_file
-from src.pretreatment import pretreatment, unfold_corpus, conv_corpus
+from src.pretreatment import pretreatment, unfold_corpus, conv_corpus, read_corpus
 from env_settings import MODEL_DIR, DATA_DIR, OUTPUT_DIR, LOG_DIR, EMB_DIR
 
 
@@ -31,26 +31,23 @@ tf.app.flags.DEFINE_string('log_dir', LOG_DIR, 'The log dir')
 tf.app.flags.DEFINE_string('model_dir', MODEL_DIR, 'Models dir')
 tf.app.flags.DEFINE_string('restore_model', 'None',
                            'Path of the model to restored')
-# tf.app.flags.DEFINE_string("emb_dir", EMBEDDING_DIR, "Embeddings dir")
-# tf.app.flags.DEFINE_string("emb_type", "char", "Embeddings type: char/charpos")
 tf.app.flags.DEFINE_string(
     "emb_file", EMB_DIR + "/weibo_charpos_vectors", "Embeddings file")
 tf.app.flags.DEFINE_integer("emb_dim", 100, "embedding size")
 tf.app.flags.DEFINE_string("output_dir", OUTPUT_DIR, "Output dir")
 tf.app.flags.DEFINE_integer(
     "feat_thresh", 0, "Only keep feats which occurs more than 'thresh' times.")
-# tf.app.flags.DEFINE_boolean('only_test', False, 'Only do the test')
+tf.app.flags.DEFINE_boolean('only_test', False, 'Only do the test')
 tf.app.flags.DEFINE_float("lr", 0.002, "learning rate")
 tf.app.flags.DEFINE_boolean(
     'fine_tuning', False, 'Whether fine-tuning the embeddings')
 tf.app.flags.DEFINE_boolean(
-    'eval_test', True, 'Whether evaluate the test data.')
-tf.app.flags.DEFINE_boolean(
-    'test_anno', True, 'Whether the test data is labeled.')
+    'eval_test', False, 'Whether evaluate the test data.')
+# tf.app.flags.DEFINE_boolean(
+#     'test_anno', True, 'Whether the test data is labeled.')
 tf.app.flags.DEFINE_integer("max_len", MAX_LEN,
                             "max num of tokens per query")
 tf.app.flags.DEFINE_integer("nb_classes", 17, "Tagset size")
-# tf.app.flags.DEFINE_integer("hidden_dim", 100, "hidden unit number")
 tf.app.flags.DEFINE_integer("batch_size", 200, "num example per mini batch")
 tf.app.flags.DEFINE_integer("train_steps", 50, "trainning steps")
 tf.app.flags.DEFINE_integer("display_step", 1, "number of test display step")
@@ -60,8 +57,8 @@ tf.app.flags.DEFINE_boolean(
 tf.app.flags.DEFINE_string("template", r"template", "Feature templates")
 
 
-def convert_id_to_word(corpus, idx2label):
-    return [[idx2label.get(word, 'O') for word in sentence]
+def convert_id_to_word(corpus, idx2label, default='O'):
+    return [[idx2label.get(word, default) for word in sentence]
             for sentence in corpus]
 
 
@@ -116,13 +113,120 @@ def test_evaluate(sess, unary_score, test_sequence_length, transMatrix, inp,
     return pred_labels
 
 
-def train(total_loss):
-    return tf.train.AdamOptimizer(FLAGS.lr).minimize(total_loss)
+def save_dicts(path, feats2idx, words2idx, label2idx):
+    with cs.open(path + 'FEATS', 'w') as out:
+        for k, v in feats2idx.iteritems():
+            out.write("%s %d\n" % (k, v))
+
+    with cs.open(path + 'WORDS', 'w') as out:
+        for k, v in words2idx.iteritems():
+            out.write("%s %d\n" % (k, v))
+
+    with cs.open(path + 'LABEL', 'w') as out:
+        for k, v in label2idx.iteritems():
+            out.write("%s %d\n" % (k, v))
+
+
+def load_dicts(path):
+    feats2idx = {}
+    words2idx = {}
+    label2idx = {}
+    with cs.open(path + 'FEATS', 'r') as src:
+        items = src.read().strip().split('\n')
+        for item in items:
+            k, v = item.strip().split()
+            feats2idx[k] = int(v)
+
+    with cs.open(path + 'WORDS', 'r') as src:
+        items = src.read().strip().split('\n')
+        for item in items:
+            k, v = item.strip().split()
+            words2idx[k] = int(v)
+
+    with cs.open(path + 'LABEL', 'r') as src:
+        items = src.read().strip().split('\n')
+        for item in items:
+            k, v = item.strip().split()
+            label2idx[k] = int(v)
+
+    return feats2idx, words2idx, label2idx
+
+
+def test(FLAGS):
+    print "#" * 67
+    print "# Loading data from:"
+    print "#" * 67
+    print "Test: ", FLAGS.test_data
+
+    # Load feature templates
+    template = Template(FLAGS.template)
+
+    # Load dicts
+    feats2idx, words2idx, label2idx = load_dicts(
+        FLAGS.output_dir)
+    idx2label = dict((k, v) for v, k in FLAGS.label2idx.iteritems())
+
+    # load embeddings from file
+    print "#" * 67
+    print "# Reading embeddings from file: %s" % (FLAGS.emb_file)
+    emb_mat, idx_map = read_emb_from_file(FLAGS.emb_file, words2idx)
+    FLAGS.emb_dim = max(emb_mat.shape[1], FLAGS.emb_dim)
+    print "embeddings' size:", emb_mat.shape
+    if FLAGS.fine_tuning:
+        print "The embeddings will be fine-tuned!"
+
+    # Read test corpus
+    test_corpus, test_lens, test_max_len = read_corpus(
+        FLAGS.test_data, template)
+
+    # neural network's output_dim
+    FLAGS.max_len = test_max_len
+    FLAGS.feat_size = len(feats2idx)
+    FLAGS.nb_classes = len(label2idx) + 1
+
+    # Embedding layer's input_dim
+    nb_words = len(words2idx)
+    FLAGS.nb_words = nb_words
+    FLAGS.in_dim = FLAGS.nb_words + 1
+
+    test_sentcs, test_featvs, test_labels = unfold_corpus(test_corpus)
+
+    print "Lexical word size:     %d" % len(words2idx)
+    print "Label size:            %d" % len(label2idx)
+    print "Features size:         %d" % len(feats2idx)
+    print "-------------------------------------------------------------------"
+    print "Test data size:        %d" % len(test_corpus)
+    print "Maximum sentence len:  %d" % FLAGS.max_len
+
+    test_X, test_F, test_Y = conv_corpus(
+        test_sentcs, test_featvs, test_labels,
+        words2idx, feats2idx, label2idx, max_len=FLAGS.max_len)
+
+    model = embedding_CRF(
+        FLAGS.nb_words, FLAGS.emb_dim, emb_mat, FLAGS.feat_size,
+        FLAGS.nb_classes, FLAGS.max_len, FLAGS.fine_tuning,
+        FLAGS.batch_size, len(template.template), FLAGS.l2_reg)
+
+    pred_test, test_loss, test_acc = model.run(
+        None, None, None, None,
+        None, None, None, None,
+        test_X, test_F, test_Y, test_lens,
+        FLAGS)
+
+    print "Test loss: %f, accuracy: %f" % (test_loss, test_acc)
+    pred_test = [pred_test[i][:test_lens[i]] for i in xrange(len(pred_test))]
+    pred_test_label = convert_id_to_word(pred_test, idx2label)
+    write_prediction(FLAGS.output_dir + 'prediction.utf8',
+                     test_sentcs, pred_test_label)
 
 
 def main(_):
     np.random.seed(1337)
     random.seed(1337)
+
+    if FLAGS.only_test or FLAGS.train_steps == 0:
+        test(FLAGS)
+        return
 
     print "#" * 67
     print "# Loading data from:"
@@ -175,7 +279,7 @@ def main(_):
 
     # neural network's output_dim
     nb_classes = len(label2idx)
-    FLAGS.nb_classes = nb_classes
+    FLAGS.nb_classes = nb_classes + 1
 
     # Embedding layer's input_dim
     nb_words = len(words2idx)
@@ -245,6 +349,10 @@ def main(_):
     # original_text = [[item['w'] for item in sent] for sent in test_corpus]
     write_prediction(FLAGS.output_dir + 'prediction.utf8',
                      test_sentcs, pred_test_label)
+
+    print "Saving feature dicts..."
+    save_dicts(FLAGS.output_dir, FLAGS.feats2idx,
+               FLAGS.words2idx, FLAGS.label2idx)
 
 
 if __name__ == "__main__":
