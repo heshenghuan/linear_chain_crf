@@ -243,6 +243,8 @@ So you must give a specific path to 'restore\_model'.
 
 ## History
 
+- **2017-09-18 ver 0.1.12**
+  - Fix batch data generator bug.
 - **2017-09-12 ver 0.1.11**
   - Run `python env_settings.py` to create default dirs automatically.
   - Fix restore model bug, and set encoding=utf-8 when saving or loading dicts.
