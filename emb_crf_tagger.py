@@ -22,17 +22,17 @@ from env_settings import MODEL_DIR, DATA_DIR, OUTPUT_DIR, LOG_DIR, EMB_DIR
 FLAGS = tf.app.flags.FLAGS
 
 tf.app.flags.DEFINE_string(
-    'train_data', DATA_DIR + r'weiboNER_2nd_conll.train', 'Training data file')
+    'train_data', None, 'Training data file')
 tf.app.flags.DEFINE_string(
-    'test_data', DATA_DIR + r'weiboNER_2nd_conll.test', 'Test data file')
+    'test_data', None, 'Test data file')
 tf.app.flags.DEFINE_string(
-    'valid_data', DATA_DIR + r'weiboNER_2nd_conll.dev', 'Validation data file')
+    'valid_data', None, 'Validation data file')
 tf.app.flags.DEFINE_string('log_dir', LOG_DIR, 'The log dir')
 tf.app.flags.DEFINE_string('model_dir', MODEL_DIR, 'Models dir')
 tf.app.flags.DEFINE_string('restore_model', 'None',
                            'Path of the model to restored')
 tf.app.flags.DEFINE_string(
-    "emb_file", EMB_DIR + "/weibo_charpos_vectors", "Embeddings file")
+    "emb_file", None, "Embeddings file")
 tf.app.flags.DEFINE_integer("emb_dim", 100, "embedding size")
 tf.app.flags.DEFINE_string("output_dir", OUTPUT_DIR, "Output dir")
 tf.app.flags.DEFINE_integer(
