@@ -4,7 +4,7 @@ This project is a HMM-like linear-chain CRF implementation, using Tensorflow API
 
 As long as the format of given data is correct, this project can applied to solve some sequence labelling program like 'Chinese Word Segmentation', 'NER' and 'POS-tagging'.
 
-As a traditional linear-chain CRF, the feature template used in this project has been given in file [templates.py](./templates.py). Of course, you can customize a feature template.
+As a traditional linear-chain CRF, the feature template used in this project has been given in a text file(default file: 'template'). Of course, you can customize a feature template.
 
 ## Dependecies
 
@@ -12,7 +12,7 @@ Because this project used Tensorflow API, it requires installation of Tensorflow
 
 - Tensorflow ( >= r1.1)
 
-Both of them can be easily installed by `pip`. 
+Both of them can be easily installed by `pip`.
 
 ## Data Format
 
@@ -80,7 +80,13 @@ If your token has more than 2 columns, you may need change the fields and templa
 
 ## Embeddings
 
-This program supports word/char embeddings input. When running this program, you should give a embedding file(word2vec standard output format) by specific argument.
+Program `emb_crf_tagger.py` supports embeddings input. When running this program, you should give a embedding file(word2vec standard output format) by specific argument like:
+
+```
+python emb_crf_tagger.py --emb_file the_path_of_your_own_embedding_file
+```
+
+Because different task needs different type of embeddings, so I don't provide any embeddings here. You can use your own pre-trained embedding file, or just download one (which is so easy to get via internet).
 
 ## Usage
 
@@ -243,6 +249,10 @@ So you must give a specific path to 'restore\_model'.
 
 ## History
 
+- **2017-09-21 ver 0.1.13**
+  - Set default file path to Nonetype.
+  - Fix incorrect arguments settings.
+  - Update docmentation about embeddings.
 - **2017-09-18 ver 0.1.12**
   - Fix batch data generator bug.
 - **2017-09-12 ver 0.1.11**
