@@ -12,10 +12,10 @@ import numpy as np
 import codecs as cs
 import tensorflow as tf
 from model import linear_chain_CRF
-from src.parameters import MAX_LEN
-from src.features import Template
-from src.utils import eval_ner
-from src.pretreatment import pretreatment, unfold_corpus, conv_corpus, read_corpus
+from lib.src.parameters import MAX_LEN
+from lib.src.features import Template
+from lib.src.utils import eval_ner
+from lib.src.pretreatment import pretreatment, unfold_corpus, conv_corpus, read_corpus
 from env_settings import MODEL_DIR, DATA_DIR, OUTPUT_DIR, LOG_DIR
 
 
