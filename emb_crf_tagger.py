@@ -13,7 +13,7 @@ import codecs as cs
 import tensorflow as tf
 from model import embedding_CRF
 from lib.src.parameters import MAX_LEN
-from lib.src.features import Template
+from lib.src.features import HybridTemplate
 from lib.src.utils import eval_ner, read_emb_from_file
 from lib.src.pretreatment import pretreatment, unfold_corpus, conv_corpus, read_corpus
 from env_settings import MODEL_DIR, DATA_DIR, OUTPUT_DIR, LOG_DIR, EMB_DIR
@@ -55,6 +55,7 @@ tf.app.flags.DEFINE_float("l2_reg", 0.0001, "L2 regularization weight")
 tf.app.flags.DEFINE_boolean(
     'log', True, 'Whether to record the TensorBoard log.')
 tf.app.flags.DEFINE_string("template", r"template", "Feature templates")
+tf.app.flags.DEFINE_integer("window", 1, "Window size of context")
 
 
 def convert_id_to_word(corpus, idx2label, default='O'):
@@ -158,8 +159,17 @@ def test(FLAGS):
     print "#" * 67
     print "Test: ", FLAGS.test_data
 
+    if FLAGS.window == 1:
+        win = (0, 0)
+    elif FLAGS.window == 3:
+        win = (-1, 1)
+    elif FLAGS.window == 5:
+        win = (-2, 2)
+    else:
+        raise ValueError('Unsupported window size %d.' % FLAGS.window)
+
     # Load feature templates
-    template = Template(FLAGS.template)
+    template = HybridTemplate(FLAGS.template, win)
 
     # Load dicts
     feats2idx, words2idx, label2idx = load_dicts(
@@ -237,8 +247,17 @@ def main(_):
     print "Test: ", FLAGS.test_data
     print "Feature threshold:", FLAGS.feat_thresh
 
+    if FLAGS.window == 1:
+        win = (0, 0)
+    elif FLAGS.window == 3:
+        win = (-1, 1)
+    elif FLAGS.window == 5:
+        win = (-2, 2)
+    else:
+        raise ValueError('Unsupported window size %d.' % FLAGS.window)
+
     # Choose fields templates & features templates
-    template = Template(FLAGS.template)
+    template = HybridTemplate(FLAGS.template, win)
     # pretreatment process: read, split and create vocabularies
     train_set, valid_set, test_set, dicts, max_len = pretreatment(
         FLAGS.train_data, FLAGS.valid_data, FLAGS.test_data,
@@ -276,7 +295,7 @@ def main(_):
 
     del train_corpus
     del valid_corpus
-    del test_corpus
+    # del test_corpus
 
     # neural network's output_dim
     nb_classes = len(label2idx)
@@ -333,7 +352,7 @@ def main(_):
     model = embedding_CRF(
         FLAGS.nb_words, FLAGS.emb_dim, emb_mat, FLAGS.feat_size,
         FLAGS.nb_classes, FLAGS.max_len, FLAGS.fine_tuning,
-        FLAGS.batch_size, len(template.template), FLAGS.l2_reg)
+        FLAGS.batch_size, len(template.template), FLAGS.window, FLAGS.l2_reg)
 
     pred_test, test_loss, test_acc = model.run(
         train_X, train_F, train_Y, train_lens,
@@ -347,9 +366,9 @@ def main(_):
     if FLAGS.eval_test:
         res_test, pred_test_label = evaluate(pred_test_label, test_labels)
         print "Test F1: %f, P: %f, R: %f" % (res_test['f1'], res_test['p'], res_test['r'])
-    # original_text = [[item['w'] for item in sent] for sent in test_corpus]
+    original_text = [[item['w'] for item in sent] for sent in test_corpus]
     write_prediction(FLAGS.output_dir + 'prediction.utf8',
-                     test_sentcs, pred_test_label)
+                     original_text, pred_test_label)
 
     print "Saving feature dicts..."
     save_dicts(FLAGS.output_dir, FLAGS.feats2idx,

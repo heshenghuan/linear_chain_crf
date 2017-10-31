@@ -306,7 +306,7 @@ class embedding_CRF(linear_chain_CRF):
 
     def __init__(self, nb_words, emb_dim, emb_matrix, feat_size,
                  nb_classes, time_steps, fine_tuning=False,
-                 batch_size=None, templates=1, l2_reg=0.):
+                 batch_size=None, templates=1, window=1, l2_reg=0.):
         self.nb_words = nb_words
         self.emb_dim = emb_dim
         self.feat_size = feat_size
@@ -315,6 +315,7 @@ class embedding_CRF(linear_chain_CRF):
         self.time_steps = time_steps
         self.l2_reg = l2_reg
         self.fine_tuning = fine_tuning
+        self.window = window
 
         if self.fine_tuning:
             self.emb_matrix = tf.Variable(
@@ -328,7 +329,7 @@ class embedding_CRF(linear_chain_CRF):
                 tf.int32, shape=[None, self.time_steps, templates],
                 name='F_placeholder')
             self.X = tf.placeholder(
-                tf.int32, shape=[None, self.time_steps],
+                tf.int32, shape=[None, self.time_steps, self.window],
                 name='X_placeholder'
             )
             self.Y = tf.placeholder(
@@ -350,7 +351,7 @@ class embedding_CRF(linear_chain_CRF):
             )
 
             self.T = tf.get_variable(
-                shape=[self.emb_dim, self.nb_classes],
+                shape=[self.window * self.emb_dim, self.nb_classes],
                 initializer=tf.truncated_normal_initializer(stddev=0.01),
                 name='emb_weights'
             )
@@ -374,7 +375,7 @@ class embedding_CRF(linear_chain_CRF):
 
             # embedding features
             word_vec = tf.nn.embedding_lookup(self.emb_matrix, X)
-            word_vec = tf.reshape(word_vec, [-1, self.emb_dim])
+            word_vec = tf.reshape(word_vec, [-1, self.window * self.emb_dim])
             scores = feat_vec + tf.matmul(word_vec, self.T) + self.b
             # scores = tf.nn.softmax(scores)
             scores = tf.reshape(scores, [-1, self.time_steps, self.nb_classes])
