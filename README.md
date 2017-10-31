@@ -239,6 +239,7 @@ optional arguments:
   --log [LOG]           Whether to record the TensorBoard log.
   --nolog
   --template TEMPLATE   Feature templates
+  --window WINDOW       Window size of context
 ```
 
 ### Test
@@ -249,6 +250,11 @@ So you must give a specific path to 'restore\_model'.
 
 ## History
 
+- **2017-10-31 ver 0.1.14**
+  - Update Neural Text Process lib 0.2.0
+  - Compatible modification.
+    - embedding-enhanced crf tagger now support window-repr for tokens
+    - you can use '--window' to specify window size.
 - **2017-09-21 ver 0.1.13**
   - Set default file path to Nonetype.
   - Fix incorrect arguments settings.
