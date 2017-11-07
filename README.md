@@ -42,6 +42,8 @@ Here's an example of such a file: (data for Chinese NER)
 
 ## Featrue template
 
+> More detail about feature template system, you can check out my other repo [ContextFeatureExtractor](https://github.com/heshenghuan/ContextFeatureExtractor), which is a submodule of this project.
+
 In file `template` specificated the feature template which used in context-based feature extraction. The second line `fields` indicates the field name for each column of a token. And the `templates` described how to extract features.
 
 For example, the basic template is:
