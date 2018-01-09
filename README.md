@@ -273,6 +273,9 @@ So you must give a specific path to 'restore\_model'.
 
 ## History
 
+- **2018-01-09 ver 0.1.15**
+  - Update Neural Text Process lib 0.2.1
+  - Prefix, not suffix(Ah my poor English:sweat_smile:).
 - **2017-10-31 ver 0.1.14**
   - Update Neural Text Process lib 0.2.0
   - Compatible modification.
