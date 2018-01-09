@@ -16,13 +16,13 @@ Both of them can be easily installed by `pip`.
 
 ## Data Format
 
-The data format is basically consistent with the CRF++ toolkit. Generally speaking, training and test file must consist of multiple tokens. In addition, a token consists of multiple (but fixed-numbers) columns. Each token must be represented in one line, with the columns separated by white space (spaces or tabular characters). A sequence of token becomes a sentence. (So far, this program only supports data with 3-columns.)
+The data format is basically consistent with the CRF++ toolkit. Generally speaking, training and test file must consist of multiple tokens. In addition, a token consists of multiple (but fixed-numbers) columns. Each token must be represented in one line, with the columns separated by white space (spaces or tabular characters). A sequence of token becomes a sentence.
 
-To identify the boundary between sentences, an empty line is put.
+To identify the boundary between sentences, an empty line is put. **It means there should be a '\n\n' between two different sentences.** So, if your OS is Windows, please check out what the boundary character really is.
 
 Here's an example of such a file: (data for Chinese NER)
 
-```
+```text
 ...
 感	O
 动	O
@@ -48,8 +48,8 @@ In file `template` specificated the feature template which used in context-based
 
 For example, the basic template is:
 
-```
-# Fields(column), w,y&F are reserved names
+```text
+# Fields(column), w, y, x & F are reserved names
 w y
 # templates.
 w:-2
@@ -66,7 +66,28 @@ w:-1, w: 1
 
 it means, each token will only has 2 columns data, 'w' and 'y'. Field `y` should always be at the last column.
 
-> Note that `w` `y` & `F` fields are reserved, because program used them to represent word, label and word's features.
+```text
+...
+x	y
+感	O
+动	O
+了	O
+李	B-PER.NAM
+开	I-PER.NAM
+复	I-PER.NAM
+感	O
+动	O
+
+回	O
+复	O
+支	O
+持	O
+...
+```
+
+First column is field `x`, second column is `y`.
+
+> Note that `w`, `y`, `x` & `F` fields are reserved, because program used them to represent word, label, contextual tokens and word's features.
 >
 > Each token will become a dict type data like '{'w': '李', 'y': 'B-PER.NAM', 'F': ['w[-2]=动', 'w[-1]=了', ...]}'
 
@@ -84,7 +105,7 @@ If your token has more than 2 columns, you may need change the fields and templa
 
 Program `emb_crf_tagger.py` supports embeddings input. When running this program, you should give a embedding file(word2vec standard output format) by specific argument like:
 
-```
+```shell
 python emb_crf_tagger.py --emb_file the_path_of_your_own_embedding_file
 ```
 
@@ -109,19 +130,19 @@ LOG_DIR = BASE_DIR + r'Summary/'
 
 If your don't have those dirs in your project dir, just run `python env_settings.py`, and they will be created automatically.
 
-### Training 
+### Training
 
 #### 1. Using pure CRF tagger
 
 Just run the **./crf_tagger.py** file. Or specify some arguments if you need, like this:
 
-```
+```shell
 python crf_tagger.py --lr 0.005 --fine_tuning False --l2_reg 0.0002
 ```
 
 Then the model will run on lr=0.005, not fine-tuning, l2_reg=0.0002 and all others default. Using `-h` will print all help informations. Some arguments has no effect for now, like `restore_model`, but after some updates those arguments might be useful.
 
-```
+```shell
 $ python crf_tagger.py -h
 usage: crf_tagger.py [-h] [--train_data TRAIN_DATA] [--test_data TEST_DATA]
                      [--valid_data VALID_DATA] [--log_dir LOG_DIR]
@@ -177,13 +198,13 @@ optional arguments:
 
 Just run the **./emb_crf_tagger.py** file. Or specify some arguments if you need, like this:
 
-```
+```shell
 python emb_crf_tagger.py --lr 0.005 --fine_tuning False --l2_reg 0.0002
 ```
 
 Then the model will run on lr=0.005, not fine-tuning, l2_reg=0.0002 and all others default. Using `-h` will print all help informations.
 
-```
+```shell
 $ python emb_crf_tagger.py -h
 usage: emb_crf_tagger.py [-h] [--train_data TRAIN_DATA]
                          [--test_data TEST_DATA] [--valid_data VALID_DATA]
