@@ -273,6 +273,8 @@ So you must give a specific path to 'restore\_model'.
 
 ## History
 
+- **2018-02-09 ver 0.1.16**
+  - Fixed feature size error, the 0(oov feature) is already exist in feature list.
 - **2018-01-09 ver 0.1.15**
   - Update Neural Text Process lib 0.2.1
   - Prefix, not suffix(Ah my poor English:sweat_smile:).

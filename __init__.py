@@ -14,4 +14,4 @@ __all__ = [
     'pretreatment', 'parameters', 'features'
 ]
 
-__version__ = '0.1.15'
+__version__ = '0.1.16'
