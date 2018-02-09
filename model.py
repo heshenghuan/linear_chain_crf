@@ -57,7 +57,7 @@ class linear_chain_CRF():
     def build(self):
         with tf.name_scope('weights'):
             self.W = tf.get_variable(
-                shape=[self.feat_size + 1, self.nb_classes],
+                shape=[self.feat_size, self.nb_classes],
                 initializer=tf.truncated_normal_initializer(stddev=0.01),
                 name='weights'
                 # regularizer=tf.contrib.layers.l2_regularizer(0.001)
@@ -344,7 +344,7 @@ class embedding_CRF(linear_chain_CRF):
     def build(self):
         with tf.name_scope('weights'):
             self.W = tf.get_variable(
-                shape=[self.feat_size + 1, self.nb_classes],
+                shape=[self.feat_size, self.nb_classes],
                 initializer=tf.truncated_normal_initializer(stddev=0.01),
                 name='feat_weights'
                 # regularizer=tf.contrib.layers.l2_regularizer(0.001)
