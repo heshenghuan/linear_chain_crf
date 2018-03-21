@@ -273,8 +273,8 @@ So you must give a specific path to 'restore\_model'.
 
 ## History
 
-- **2018-03-20 ver 0.1.17**
-  - Fixed [issue #7](https://github.com/heshenghuan/linear_chain_crf/issues/7)
+- **2018-03-21 ver 0.1.17**
+  - Fixed [issue #7](https://github.com/heshenghuan/linear_chain_crf/issues/7), [issue #5](https://github.com/heshenghuan/linear_chain_crf/issues/5)
 - **2018-02-09 ver 0.1.16**
   - Fixed feature size error, the 0(oov feature) is already exist in feature list.
 - **2018-01-09 ver 0.1.15**

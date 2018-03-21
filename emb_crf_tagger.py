@@ -215,7 +215,7 @@ def test(FLAGS):
     model = embedding_CRF(
         FLAGS.nb_words, FLAGS.emb_dim, emb_mat, FLAGS.feat_size,
         FLAGS.nb_classes, FLAGS.max_len, FLAGS.fine_tuning,
-        FLAGS.batch_size, len(template.template), FLAGS.l2_reg)
+        FLAGS.batch_size, len(template.template), FLAGS.window, FLAGS.l2_reg)
 
     pred_test, test_loss, test_acc = model.run(
         None, None, None, None,
